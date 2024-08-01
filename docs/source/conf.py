@@ -26,3 +26,16 @@ exclude_patterns = []
 
 html_theme = 'alabaster'
 html_static_path = ['_static']
+html_theme_options = {
+    "nosidebar": "false",
+    "description": "Identify histologically confirmed skin cancer cases with single-lesion crops from 3D total body photos.",
+    "github_button":True,
+    'github_user': 'mzimm003',
+    'github_repo': 'https://github.com/mzimm003/ISIC2024',
+    "fixed_sidebar":True,
+    "sidebar_width":"15%",
+    "page_width":"90%"
+}
+html_css_files = [
+    'custom.css',
+]
