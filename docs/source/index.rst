@@ -11,7 +11,6 @@ ISIC 2024
    :titlesonly:
 
    Competition Site <https://www.kaggle.com/competitions/isic-2024-challenge>
-   Mark Zimmerman's Portfolio <https://mzimm003.github.io>
    plan/plan
    notes/notes
 

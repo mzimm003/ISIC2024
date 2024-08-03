@@ -32,6 +32,9 @@ html_theme_options = {
     "github_button":True,
     'github_user': 'mzimm003',
     'github_repo': 'https://github.com/mzimm003/ISIC2024',
+    "extra_nav_links":{
+        "Mark Zimmerman's Portfolio":"https://mzimm003.github.io",
+        },
     "fixed_sidebar":True,
     "sidebar_width":"15%",
     "page_width":"90%"
