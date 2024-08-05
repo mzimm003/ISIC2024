@@ -34,6 +34,55 @@ from typing import (
 
 from quickscript.scripts import Script, ScriptChooser
 
+class Utilities:
+    class FEATURE_REDUCERS:
+        LDA = LinearDiscriminantAnalysis # Reduces to fewer than number of classifications, only suitable for problems of multiple classes
+        PCA = PCA
+    class DATASETS:
+        SkinLesions = SkinLesions
+    class ACTIVATIONS:
+        relu = nn.ReLU
+        sig = nn.Sigmoid
+    class EMBEDDINGS:
+        fcn = EncoderClassifier
+    class TRANSFORMERS:
+        classifier = TransformerClassifier
+
+    @staticmethod
+    def __initialize(group, obj, kwargs):
+        return ((getattr(group, obj)
+                if isinstance(obj, str)
+                else obj)(**kwargs))
+
+    @staticmethod
+    def initialize_feature_reducer(obj, kwargs):
+        return Utilities.__initialize(Utilities.FEATURE_REDUCERS, obj, kwargs)
+    
+    @staticmethod
+    def initialize_dataset(obj, kwargs):
+        return Utilities.__initialize(Utilities.DATASETS, obj, kwargs)
+    
+    @staticmethod
+    def initialize_activation(obj, kwargs):
+        return Utilities.__initialize(Utilities.ACTIVATIONS, obj, kwargs)
+    
+    @staticmethod
+    def initialize_embedding(obj, kwargs):
+        return Utilities.__initialize(Utilities.EMBEDDINGS, obj, kwargs)
+    
+    @staticmethod
+    def initialize_transformer(obj, kwargs):
+        return Utilities.__initialize(Utilities.TRANSFORMERS, obj, kwargs)
+    
+    @staticmethod
+    def load_model(load_path):
+        class Model:
+            def __init__(slf) -> None:
+                slf.model = onnxruntime.InferenceSession(load_path)
+            def __call__(slf, x:pd.DataFrame, *args: Any, **kwds: Any) -> Any:
+                return slf.model.run(None, {"X":x.astype(np.float32).to_numpy()})
+        return Model()
+
 class Rescale(nn.Module):
     def __init__(
             self,
@@ -187,6 +236,108 @@ class PPLabels(PreProcess):
             fill_nan_config['fill_value'] = fill_nan_values
         self.fill_nan = FillNaN(**fill_nan_config)
 
+class TransformerClassifier(nn.Module):
+    def __init__(
+            self,
+            hidden_dim:int = 256,
+            nhead:int = 8,
+            layers:int = 4,
+            dim_feedforward:int = 1024,
+            norm_first:bool = False,
+            activation:Union[str, Utilities.ACTIVATIONS, nn.Module] = None,
+            activation_kwargs:Dict[str, Any] = None,
+            *args,
+            **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.activation = Utilities.initialize_activation(activation, activation_kwargs)
+        self.transformer = nn.Transformer(
+            d_model = hidden_dim,
+            nhead = nhead,
+            num_encoder_layers = layers,
+            num_decoder_layers = layers,
+            dim_feedforward = dim_feedforward,
+            batch_first = True,
+            norm_first = norm_first,
+        )
+    
+    def forward(self, src:torch.Tensor, tgt:torch.Tensor):
+        param_ref = next(self.transformer.parameters())
+        src = src.to(device = param_ref.device, dtype=param_ref.dtype)
+        tgt = tgt.to(device = param_ref.device, dtype=param_ref.dtype)
+        return self.transformer(src, tgt)
+
+class EncoderClassifier(nn.Module):
+    def __init__(
+            self,
+            embedding_dim:int = 64,
+            activation:Union[str, Utilities.ACTIVATIONS, nn.Module] = None,
+            activation_kwargs:Dict[str, Any] = None,
+            *args,
+            **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.activation = Utilities.initialize_activation(activation, activation_kwargs)
+        self.encoder = nn.Sequential(
+            nn.LazyLinear(embedding_dim),
+            self.activation,
+            nn.Linear(embedding_dim, embedding_dim))
+    
+    def forward(self, x:torch.Tensor):
+        param_ref = next(self.encoder.parameters())
+        x = x.to(device = param_ref.device, dtype=param_ref.dtype)
+        return self.encoder(x)
+
+class Classifier(nn.Module):
+    def __init__(
+            self,
+            feature_reducer_path:Union[str, Path] = None,
+            embedding:Union[str, Utilities.EMBEDDINGS, Type[nn.Module]] = None,
+            embedding_kwargs:Dict[str, Any] = None,
+            transformer:Union[str, Utilities.TRANSFORMERS, Type[nn.Module]] = None,
+            transformer_kwargs:Dict[str, Any] = None,
+            *args,
+            **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.feature_reducer = Utilities.load_model(feature_reducer_path)
+        self.feature_embedding = Utilities.initialize_embedding(
+            embedding, embedding_kwargs)
+        #TODO
+        self.query = nn.Linear(1,1)
+        #TODO
+        self.positional_embedding_x = nn.Embedding(1,1)
+        self.positional_embedding_y = nn.Embedding(1,1)
+        self.img_color_embedding = nn.Linear(3,1)
+        #END TODO
+        self.img_flatten = nn.Flatten(-3,-2)
+        self.transformer = Utilities.initialize_transformer(
+            transformer, transformer_kwargs)
+    
+    def forward(self, img:torch.Tensor, fet:torch.Tensor):
+        fet = self.feature_reducer(fet)
+
+        param_ref = next(self.transformer.parameters())
+        fet = fet.to(dtype=param_ref.dtype, device=param_ref.device)
+        img = img.to(dtype=param_ref.dtype, device=param_ref.device)
+
+        fet = self.feature_embedding(fet)
+        fet = self.query(fet).reshape(2,-1)
+
+        width = img.shape[-3]
+        height = img.shape[-2]
+        x_emb = self.positional_embedding_x(torch.arange(width))
+        y_emb = self.positional_embedding_y(torch.arange(height))
+        pos_emb = (
+            torch.tile(x_emb[None,:], (height,1)) +
+            torch.tile(y_emb[:,None], (1, width))
+            )
+        im_emb = self.img_color_embedding(img)
+        img = self.img_flatten(im_emb + pos_emb)
+        self.transformer(img, fet)
+        
+
+
+
+
+
 class SkinLesions(Dataset):
     def __init__(
             self,
@@ -234,13 +385,6 @@ class SkinLesions(Dataset):
         label = annotations[self.label_desc]
         return data, label
 
-class Utilities:
-    class FEATURE_REDUCERS:
-        LDA = LinearDiscriminantAnalysis # Reduces to fewer than number of classifications, only suitable for problems of multiple classes
-        PCA = PCA
-    class DATASETS:
-        SkinLesions = SkinLesions
-
 class TrainingScript(Script):
     data: Type[Dataset]
     save_path: Union[str, Path]
@@ -249,17 +393,6 @@ class TrainingScript(Script):
         onx = convert_sklearn(model, initial_types=[("X", FloatTensorType([None, inp.shape[-1]]))])
         with open(self.save_path / "{}.onnx".format(str(model)), "wb") as f:
             f.write(onx.SerializeToString())
-
-class ServingScript(Script):
-    data: Type[Dataset]
-    save_path: Union[str, Path]
-    def load_model(self, load_path):
-        class Model:
-            def __init__(slf) -> None:
-                slf.model = onnxruntime.InferenceSession(load_path)
-            def __call__(slf, x:pd.DataFrame, *args: Any, **kwds: Any) -> Any:
-                return slf.model.run(None, {"X":x.astype(np.float32).to_numpy()})
-        return Model()
 
 class FeatureReductionForTraining(TrainingScript):
     def __init__(
@@ -286,14 +419,48 @@ class FeatureReductionForTraining(TrainingScript):
         self.save_path = save_path
     
     def setup(self):
-        self.data = (
-            getattr(Utilities.DATASETS, self.data)
-            if isinstance(self.data, str)
-            else self.data)(**self.ds_kwargs)
-        self.feature_reducer = (
-            getattr(Utilities.FEATURE_REDUCERS, self.feature_reducer)
-            if isinstance(self.feature_reducer, str)
-            else self.feature_reducer)(**self.fr_kwargs)
+        self.data = Utilities.initialize_dataset(
+            self.data, self.ds_kwargs)
+        self.feature_reducer = Utilities.initialize_feature_reducer(
+            self.feature_reducer, self.fr_kwargs)
+        self.save_path = Path(self.save_path)
+
+    def run(self):
+        inp, tgt = self.data[:]
+        self.feature_reducer.fit(inp, tgt)
+        self.save_model(self.feature_reducer)
+
+class ClassifierTraining(TrainingScript):
+    def __init__(
+            self,
+            dataset:Union[str, Utilities.DATASETS, Type[Dataset]] = None,
+            dataset_kwargs:Dict[str, Any] = None,
+            feature_reducer_path:Union[str, Path] = None,
+            classifier:Union[str, Utilities.CLASSIFIERS] = None,
+            classifier_kwargs:Dict[str, Any] = None,
+            save_path:Union[str, Path] = None,
+            **kwargs) -> None:
+        """
+        Args:
+            dataset: The dataset class to be used.
+            dataset_kwargs: Configuration for the dataset.
+            feature_reducer: The feature reducer class to be used.
+            feature_reducer_kwargs: Configuration for the feature reducer.
+            save_path: Specify a path to which feature reducer should be saved.
+        """
+        super().__init__(**kwargs)
+        self.data = dataset
+        self.ds_kwargs = dataset_kwargs if dataset_kwargs else {}
+        self.feature_reducer_path = feature_reducer_path
+        self.feature_reducer = feature_reducer
+        self.fr_kwargs = feature_reducer_kwargs if feature_reducer_kwargs else {}
+        self.save_path = save_path
+    
+    def setup(self):
+        self.data = Utilities.initialize_dataset(
+            self.data, self.ds_kwargs)
+        self.feature_reducer = Utilities.initialize_feature_reducer(
+            self.feature_reducer, self.fr_kwargs)
         self.save_path = Path(self.save_path)
 
     def run(self):
