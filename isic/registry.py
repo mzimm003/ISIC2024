@@ -24,9 +24,11 @@ from enum import Enum
 class Registry(Enum):
     @classmethod
     def initialize(cls, obj, kwargs):
-        return ((getattr(cls, obj)
-                if isinstance(obj, str)
-                else obj)(**kwargs))
+        if isinstance(obj, str):
+            obj = getattr(cls, obj)
+        if isinstance(obj, Registry):
+            obj = obj.value
+        return obj(**kwargs)
     
     @staticmethod
     def load_model(load_path):
@@ -48,6 +50,10 @@ class ActivationReg(Registry):
 class OptimizerReg(Registry):
     SGD = SGD
     adam = Adam
+    @classmethod
+    def initialize(cls, obj, parameters, kwargs):
+        kwargs['params'] = parameters
+        return super().initialize(obj, kwargs)
 
 class CriterionReg(Registry):
     MSE = nn.MSELoss
