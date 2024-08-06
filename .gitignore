@@ -4,3 +4,4 @@
 .vscode
 train-image/
 models/
+__pycache__
