@@ -35,8 +35,8 @@ class Registry(Enum):
         class Model:
             def __init__(slf) -> None:
                 slf.model = onnxruntime.InferenceSession(load_path)
-            def __call__(slf, x:pd.DataFrame, *args: Any, **kwds: Any) -> Any:
-                return slf.model.run(None, {"X":x.astype(np.float32).to_numpy()})
+            def __call__(slf, x, *args: Any, **kwds: Any) -> Any:
+                return slf.model.run(None, {"X":x.astype(np.float32)})[0]
         return Model()
 
 class FeatureReducersReg(Registry):

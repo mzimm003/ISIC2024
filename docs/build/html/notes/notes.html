@@ -15,6 +15,7 @@
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="References" href="../references.html" />
     <link rel="prev" title="Plan" href="../plan/plan.html" />
    
   <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
@@ -60,6 +61,7 @@
 <li class="toctree-l1"><a class="reference external" href="https://www.kaggle.com/competitions/isic-2024-challenge">Competition Site</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../plan/plan.html">Plan</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
 </ul>
 
 
@@ -74,6 +76,7 @@
 <ul>
   <li><a href="../index.html">Documentation overview</a><ul>
       <li>Previous: <a href="../plan/plan.html" title="previous chapter">Plan</a></li>
+      <li>Next: <a href="../references.html" title="next chapter">References</a></li>
   </ul></li>
 </ul>
 </div>
@@ -141,6 +144,47 @@ target but which contain data only when the target is positive)</p></li>
 <li><p>Filling missing values as appropriate</p></li>
 </ul>
 </div></blockquote>
+</section>
+<section id="august-6">
+<h2>August 6<a class="headerlink" href="#august-6" title="Link to this heading">¶</a></h2>
+<p>Initial classification model nearly complete. Structure is as follows:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p><strong>Embeddings</strong>:</p>
+<ol class="arabic simple">
+<li><p><strong>Feature</strong>: A fully connected network to embed non-image features from the
+dataset. Further, this will create 2 learnable queries for the
+transformer, to be interpreted as, ‘is this image of a benign
+skin lesion?’ and ‘is this image of a malignant skin lesion?’</p></li>
+<li><p><strong>Image</strong>:</p>
+<ol class="arabic simple">
+<li><p><strong>Patch</strong>: As done by <span id="id1">Dosovitskiy <em>et al.</em> [<a class="reference internal" href="../references.html#id2" title="Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov, Dirk Weissenborn, Xiaohua Zhai, Thomas Unterthiner, Mostafa Dehghani, Matthias Minderer, Georg Heigold, Sylvain Gelly, Jakob Uszkoreit, and Neil Houlsby. An image is worth 16x16 words: transformers for image recognition at scale. 2021. URL: https://arxiv.org/abs/2010.11929, arXiv:2010.11929.">DBK+21</a>]</span>, the
+image is divided into patches where the dimensions of each
+patch are flattened and its color channels become one larger
+feature set. Further, a fully connected network is applied
+to ensure the feature set dimension is maintained as equal
+with the Feature Embeddings dimension, regardless of patch
+size.</p></li>
+<li><p><strong>Positional</strong>: For each patch, a positional embedding is created. A
+lookup table of learnable parameters for the x
+direction, and another for the y.</p></li>
+</ol>
+</li>
+</ol>
+</li>
+<li><p><strong>Transformer</strong>: Once all data is embedded, the image embeddings are added
+together and flattened to serve as the transformer’s input
+sequence, provided to the encoder. The feature embeddings
+then are served to the decoder, ultimately providing two
+outputs to be interpreted by a feedforward network for the
+appropriate classification.</p></li>
+</ol>
+</div></blockquote>
+<p>Additional preprocessing was necessary as all images must be the same size for
+the current scheme. As such, images are being padded with duplicates of the edge
+pixels, on the right and bottom, to complete a 250x250 pixel picture. Since
+all images were cropped to 15x15 mm, this should be sufficient size to contain
+all images.</p>
 </section>
 </section>
 

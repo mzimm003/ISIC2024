@@ -1,4 +1,5 @@
 from torch import nn
+import numpy as np
 import pandas as pd
 from sklearn.preprocessing import (
     OrdinalEncoder
@@ -8,7 +9,7 @@ from typing import (
     Union,
 )
 
-class Rescale(nn.Module):
+class RescaleColor(nn.Module):
     def __init__(
             self,
             minimum=0,
@@ -28,6 +29,34 @@ class Rescale(nn.Module):
     
     def forward(self, x):
         return (x - self.min) / (self.max - self.min)
+
+class Pad(nn.Module):
+    def __init__(
+            self,
+            width=250,
+            height=250,
+            mode='edge',
+            *args,
+            **kwargs) -> None:
+        """
+        Rescale inputs of a preset range to a range from 0 to 1.
+
+        Args:
+            width: The desired total pixel width.
+            height: The desired total pixel height.
+            mode: The means by which the image should be padded.
+        """
+        super().__init__(*args, **kwargs)
+        self.width = width
+        self.height = height
+        self.mode = mode
+    
+    def forward(self, x):
+        h,w,c = x.shape
+        return np.pad(
+            x,
+            ((0,self.height-h),(0,self.width-w),(0,0)),
+            mode=self.mode)
 
 class Select(nn.Module):
     def __init__(
@@ -77,19 +106,23 @@ class Select(nn.Module):
 class OrdinalEncoding(nn.Module):
     def __init__(
             self,
+            dtype=np.int64,
             *args,
             **kwargs) -> None:
         """
         Transform text into an integer category.
 
         Args:
+            dtype: Desired dtype of replacement values
         """
         super().__init__(*args, **kwargs)
+        self.dtype = dtype
     
     def forward(self, x:Union[pd.DataFrame, pd.Series]):
         mask = x.dtypes == 'object'
-        oe = OrdinalEncoder(dtype=int, encoded_missing_value=-1).fit_transform(x.loc[:,mask])
+        oe = OrdinalEncoder(dtype=self.dtype, encoded_missing_value=-1).fit_transform(x.loc[:,mask])
         x.loc[:,mask] = oe
+        x[mask.index[mask]] = x[mask.index[mask]].astype(self.dtype)
         return x
     
 class FillNaN(nn.Module):
@@ -137,11 +170,15 @@ class PPPicture(PreProcess):
         self,
         rescale_images:bool = True,
         omit:bool = False,
+        pad_mode:str = None,
+        width=250,
+        height=250,
         *args,
         **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.rescale = Rescale() if rescale_images else None
+        self.rescale = RescaleColor() if rescale_images else None
         self.select = Select(do_not_include=omit) if omit else None
+        self.pad = Pad(width=width, height=height, mode=pad_mode) if pad_mode else None
 
 class PPLabels(PreProcess):
     def __init__(

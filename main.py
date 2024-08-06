@@ -21,6 +21,7 @@ from typing import (
     Type,
     Callable
 )
+from functools import partial
 
 from quickscript.scripts import Script, ScriptChooser
 
@@ -59,9 +60,10 @@ class TrainingScript(Script):
     
     def process_data(self, data, model:nn.Module):
         param_ref = next(iter(model.parameters()))
-        inp = data.inp.to(device=param_ref.device, dtype=param_ref.dtype)
-        target = data.tgt.to(device=param_ref.device, dtype=param_ref.dtype)
-        return inp, target
+        img = data.img.to(device=param_ref.device, dtype=param_ref.dtype)
+        fet = data.fet.to(device=param_ref.device, dtype=param_ref.dtype)
+        target = data.tgt.to(device=param_ref.device)
+        return img, fet, target
     
     def process_output(self, output):
         return output
@@ -71,7 +73,8 @@ class TrainingScript(Script):
             model:nn.Module,
             optimizer:nn.Module,
             criterion:Union[nn.Module, Callable],
-            inp,
+            img,
+            fet,
             target,
             return_acc=False,
             return_prec=False,
@@ -80,7 +83,7 @@ class TrainingScript(Script):
         if model.training:
             optimizer.zero_grad()
         
-        output = model(inp)
+        output = model(img, fet)
         
         loss:torch.Tensor = criterion(output, target)
 
@@ -135,25 +138,30 @@ class FeatureReductionForTraining(TrainingScript):
         self.save_model(self.feature_reducer)
 
 class SimpleCustomBatch:
-    def __init__(self, data):
+    def __init__(self, data, feature_reducer):
         transposed_data = list(zip(*data))
-        self.inp = torch.stack(transposed_data[0], 0)
-        self.tgt = torch.stack(transposed_data[1], 0)
+        transposed_inps = list(zip(*transposed_data[0]))
+        self.img = torch.stack(transposed_inps[0], 0)
+        self.fet = torch.stack(transposed_inps[1], 0)
+        self.fet = torch.tensor(feature_reducer(self.fet.numpy()))
+        self.tgt = torch.stack(transposed_data[1], 0).long()
 
     # custom memory pinning method on custom type
     def pin_memory(self):
-        self.inp = self.inp.pin_memory()
+        self.img = self.img.pin_memory()
+        self.fet = self.fet.pin_memory()
         self.tgt = self.tgt.pin_memory()
         return self
 
-def collate_wrapper(batch):
-    return SimpleCustomBatch(batch)
+def collate_wrapper(batch, feature_reducer):
+    return SimpleCustomBatch(batch, feature_reducer)
 
 class ClassifierTraining(TrainingScript):
     def __init__(
             self,
             dataset:Union[str, DatasetReg, Type[Dataset]] = None,
             dataset_kwargs:Dict[str, Any] = None,
+            feature_reducer_path:Union[str, Path] = None,
             classifier:Union[str, ModelReg] = None,
             classifier_kwargs:Dict[str, Any] = None,
             optimizer:Union[OptimizerReg, Type[Optimizer]]= None,
@@ -164,12 +172,13 @@ class ClassifierTraining(TrainingScript):
             k_fold_splits:int = 4,
             batch_size:int = 64,
             shuffle:bool = True,
-            num_workers:int = None,
+            num_workers:int = 0,
             **kwargs) -> None:
         """
         Args:
             dataset: The dataset class to be used.
             dataset_kwargs: Configuration for the dataset.
+            feature_reducer_path: Path to feature reducing model, if desired.
             classifier: The classifier class to be used.
             classifier_kwargs: Configuration for the classifier.
             optimizer: The optimizer class to be used.
@@ -185,6 +194,7 @@ class ClassifierTraining(TrainingScript):
         super().__init__(**kwargs)
         self.data = dataset
         self.ds_kwargs = dataset_kwargs if dataset_kwargs else {}
+        self.feature_reducer_path = feature_reducer_path
         self.kf = KFold(n_splits=k_fold_splits)
         self.dl_kwargs = dict(
             batch_size=batch_size,
@@ -192,7 +202,7 @@ class ClassifierTraining(TrainingScript):
             collate_fn=collate_wrapper,
             pin_memory=True,
             num_workers=num_workers,
-            prefetch_factor=2
+            # prefetch_factor=2
             )
 
         self.classifier:nn.Module = classifier
@@ -206,6 +216,17 @@ class ClassifierTraining(TrainingScript):
     def setup(self):
         self.data = DatasetReg.initialize(
             self.data, self.ds_kwargs)
+        if self.feature_reducer_path:
+            self.feature_reducer = Registry.load_model(self.feature_reducer_path)
+            self.dl_kwargs['collate_fn'] = partial(
+                self.dl_kwargs['collate_fn'],
+                feature_reducer=self.feature_reducer
+            )
+        else:
+            self.dl_kwargs['collate_fn'] = partial(
+                self.dl_kwargs['collate_fn'],
+                feature_reducer=nn.Identity()
+            )
         self.classifier = ModelReg.initialize(
             self.classifier, self.classifier_kwargs)
         self.classifier.to(
@@ -221,7 +242,7 @@ class ClassifierTraining(TrainingScript):
         metrics["k_fold_train_loss"] = []
         metrics["k_fold_val_loss"] = []
         metrics["k_fold_val_acc"] = []
-        for i, (train_fold, val_fold) in enumerate(self.kf.get_n_splits(self.data)):
+        for i, (train_fold, val_fold) in enumerate(self.kf.split(self.data)):
             train_loader = DataLoader(
                 Subset(self.data, train_fold),
                 ** self.dl_kwargs
@@ -234,14 +255,15 @@ class ClassifierTraining(TrainingScript):
             self.classifier.train()
             metrics["k_fold_train_loss"].append(0)
             for data in train_loader:
-                inp, tgt = self.process_data(data, self.classifier)
+                img, fet, tgt = self.process_data(data, self.classifier)
 
                 result = self.infer_itr(
                     model=self.classifier,
                     optimizer=self.optimizer,
                     criterion=self.criterion,
-                    inp=inp,
-                    target=tgt
+                    img=img,
+                    fet=fet,
+                    target=tgt,
                 )
                 metrics["k_fold_train_loss"][i] += result['loss']
             metrics["k_fold_train_loss"][i] = (
@@ -251,13 +273,14 @@ class ClassifierTraining(TrainingScript):
             metrics["k_fold_val_loss"].append(0)
             metrics["k_fold_val_acc"].append(0)
             for data in val_loader:
-                inp, tgt = self.process_data(data, self.classifier)
+                img, fet, tgt = self.process_data(data, self.classifier)
 
                 result = self.infer_itr(
                     model=self.classifier,
                     optimizer=self.optimizer,
                     criterion=self.criterion,
-                    inp=inp,
+                    img=img,
+                    fet=fet,
                     target=tgt,
                     return_acc=True
                 )
@@ -292,7 +315,7 @@ class Main(Script):
                 annotations_file="train-metadata.csv",
                 img_file="train-image.hdf5",
                 img_dir="train-image",
-                img_transform=PPPicture(omit=True),
+                img_transform=PPPicture(pad_mode='edge'),
                 annotation_transform=PPLabels(
                     exclusions=[
                         "isic_id",
@@ -314,19 +337,55 @@ class Main(Script):
                         "age_approx",
                     ],
                     fill_nan_values=[-1, 0]
-                    ),
-                annotations_only=True
+                    )
             ),
+            feature_reducer_path="./models/feature_reduction/PCA(n_components=0.9999)/model.onnx",
             classifier=ModelReg.Classifier,
             classifier_kwargs=dict(
-                feature_reducer_path="./models/feature_reduction/PCA(n_components=0.9999)/model.onnx",
                 activation=ActivationReg.relu,
             ),
             optimizer=OptimizerReg.adam,
             criterion=CriterionReg.cross_entropy,
             save_path="./models/classifier",
-            num_workers=os.cpu_count()-1,
+            # num_workers=os.cpu_count()-1,
             )
+        # script = FeatureReductionForTraining(
+        #     dataset=DatasetReg.SkinLesions,
+        #     dataset_kwargs=dict(
+        #         annotations_file="train-metadata.csv",
+        #         img_file="train-image.hdf5",
+        #         img_dir="train-image",
+        #         img_transform=PPPicture(omit=True),
+        #         annotation_transform=PPLabels(
+        #             exclusions=[
+        #                 "isic_id",
+        #                 "patient_id",
+        #                 "attribution",
+        #                 "copyright_license",
+        #                 "lesion_id",
+        #                 "iddx_full",
+        #                 "iddx_1",
+        #                 "iddx_2",
+        #                 "iddx_3",
+        #                 "iddx_4",
+        #                 "iddx_5",
+        #                 "mel_mitotic_index",
+        #                 "mel_thick_mm",
+        #                 "tbp_lv_dnn_lesion_confidence",
+        #                 ],
+        #             fill_nan_selections=[
+        #                 "age_approx",
+        #             ],
+        #             fill_nan_values=[-1, 0]
+        #             ),
+        #         annotations_only=True
+        #     ),
+        #     feature_reducer = "PCA",
+        #     feature_reducer_kwargs={
+        #         "n_components":.9999
+        #     },
+        #     save_path="./models/feature_reduction"
+        #     )
         script.setup()
         script.run()
 
