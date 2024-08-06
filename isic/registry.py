@@ -11,6 +11,10 @@ import onnxruntime
 import pandas as pd
 import numpy as np
 from torch import nn
+from torch.optim import (
+    SGD,
+    Adam
+)
 
 from typing import (
     Any
@@ -40,3 +44,11 @@ class FeatureReducersReg(Registry):
 class ActivationReg(Registry):
     relu = nn.ReLU
     sig = nn.Sigmoid
+
+class OptimizerReg(Registry):
+    SGD = SGD
+    adam = Adam
+
+class CriterionReg(Registry):
+    MSE = nn.MSELoss
+    cross_entropy = nn.CrossEntropyLoss
