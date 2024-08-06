@@ -10,6 +10,7 @@ from skl2onnx.common.data_types import FloatTensorType
 
 import numpy as np
 
+import os
 import json
 from pathlib import Path
 from typing import (
@@ -171,8 +172,15 @@ class ClassifierTraining(TrainingScript):
             dataset_kwargs: Configuration for the dataset.
             classifier: The classifier class to be used.
             classifier_kwargs: Configuration for the classifier.
+            optimizer: The optimizer class to be used.
+            optimizer_kwargs : Configuration for the optimizer.
+            criterion: The criterion class to be used.
+            criterion_kwargs : Configuration for the criterion.
             save_path: Specify a path to which classifier should be saved.
             k_fold_splits: Number of folds used for dataset in training.
+            batch_size: Number of data points included in training batches.
+            shuffle: Whether to shuffle data points.
+            num_workers: For multiprocessing.
         """
         super().__init__(**kwargs)
         self.data = dataset
@@ -202,9 +210,9 @@ class ClassifierTraining(TrainingScript):
             self.classifier, self.classifier_kwargs)
         self.classifier.to(
             device=(torch.device('cuda') if torch.cuda.is_available() else 'cpu'))
-        self.optimizer = ModelReg.initialize(
-            self.optimizer, self.optimizer_kwargs)
-        self.criterion = ModelReg.initialize(
+        self.optimizer = OptimizerReg.initialize(
+            self.optimizer, self.classifier.parameters(), self.optimizer_kwargs)
+        self.criterion = CriterionReg.initialize(
             self.criterion, self.criterion_kwargs)
         self.save_path = Path(self.save_path)
 
@@ -278,7 +286,7 @@ class Main(Script):
         pass
 
     def run(self):
-        script = FeatureReductionForTraining(
+        script = ClassifierTraining(
             dataset=DatasetReg.SkinLesions,
             dataset_kwargs=dict(
                 annotations_file="train-metadata.csv",
@@ -309,11 +317,15 @@ class Main(Script):
                     ),
                 annotations_only=True
             ),
-            feature_reducer = "PCA",
-            feature_reducer_kwargs={
-                "n_components":.9999
-            },
-            save_path="./models/feature_reduction"
+            classifier=ModelReg.Classifier,
+            classifier_kwargs=dict(
+                feature_reducer_path="./models/feature_reduction/PCA(n_components=0.9999)/model.onnx",
+                activation=ActivationReg.relu,
+            ),
+            optimizer=OptimizerReg.adam,
+            criterion=CriterionReg.cross_entropy,
+            save_path="./models/classifier",
+            num_workers=os.cpu_count()-1,
             )
         script.setup()
         script.run()
