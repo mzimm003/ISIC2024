@@ -13,7 +13,11 @@ ISIC 2024
    Competition Site <https://www.kaggle.com/competitions/isic-2024-challenge>
    plan/plan
    notes/notes
+   references
 
+A challenge to develop image-based algorithms to identify histologically
+confirmed skin cancer cases with single-lesion crops from 3D total body
+photos (TBP). :cite:`isic-2024-challenge`
 
 Latest
 --------

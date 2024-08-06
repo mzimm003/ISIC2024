@@ -14,7 +14,8 @@ release = '0.0.1'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = []
+extensions = ['sphinxcontrib.bibtex']
+bibtex_bibfiles = ['refs.bib']
 
 templates_path = ['_templates']
 exclude_patterns = []

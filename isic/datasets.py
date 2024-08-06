@@ -1,4 +1,4 @@
-
+import torch
 from torch import nn
 from torch.utils.data import Dataset
 import numpy as np
@@ -31,10 +31,12 @@ class SkinLesions(Dataset):
         self.annotations_only = annotations_only
         self.image_data = None
         self.img_dir = None
+        self.img_listing = None
 
         if not self.annotations_only:
             self.image_data = h5py.File(img_file, "r")
             self.img_dir = img_dir
+            self.img_listing = self.metadata.loc[:, "isic_id"]
 
         self.img_transform = img_transform
         self.annotation_transform = annotation_transform
@@ -51,15 +53,18 @@ class SkinLesions(Dataset):
         anno_is_df = isinstance(annotations, pd.DataFrame)
 
         if self.annotations_only:
-            data = annotations.drop(self.label_desc, axis=anno_is_df)
+            data = torch.tensor(annotations.drop(self.label_desc, axis=anno_is_df).values)
         else:
-            image = np.array(self.image_data[self.metadata.loc[idx, "isic_id"]])
+            image = np.array(self.image_data[self.img_listing[idx]])
             image = np.array(Image.open(io.BytesIO(image)),dtype=np.uint8)
             if self.img_transform:
                 image = self.img_transform(image)
-            data = (image, annotations.drop(self.label_desc, axis=anno_is_df))
+            data = (
+                torch.tensor(image),
+                torch.tensor(annotations.drop(self.label_desc, axis=anno_is_df).values)
+                )
 
-        label = annotations[self.label_desc]
+        label = torch.tensor(annotations[self.label_desc])
         return data, label
 
 class DatasetReg(Registry):
