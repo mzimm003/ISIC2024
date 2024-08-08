@@ -79,3 +79,27 @@ the current scheme. As such, images are being padded with duplicates of the edge
 pixels, on the right and bottom, to complete a 250x250 pixel picture. Since
 all images were cropped to 15x15 mm, this should be sufficient size to contain
 all images.
+
+August 7
+------------
+
+A successful training epoch has been completed for the transformer based
+classifier. Unfortunately, the results have demonstrated the significance of
+imbalance in the dataset. There are 400,666 benign lesions to 393 malignant.
+Roughly, this makes for a classifier comfortable calling all things benign
+(at least considering a confidence threshold of 50%).
+
+To address imbalance, two thoughts come to mind:
+
+   #. Include weights in the cross entropy loss function. This will help impress
+      the importance of the malignant, or positive, class. However, at a ratio
+      of nearly 1020:1, this is likely to still leave training inefficient.
+   #. Augment the dataset by repeating the malignant examples. This runs the
+      risk of overfitting to those few examples that are provided, thus
+      generalizing poorly as a malignant skin lesion classifier overall. To
+      address this, rather than padding the images, I will instead randomly
+      crop images. This both ensures uniformity of image size, previously
+      solved by padding, and provides a semi-unique image on which to train, 
+      even when the image is a repeated malignant lesion. Potentially, the 
+      repeated features remains an issue for overfitting, and I will keep an eye
+      on this.

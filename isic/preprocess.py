@@ -36,10 +36,11 @@ class Pad(nn.Module):
             width=300,
             height=300,
             mode='edge',
+            pass_larger_images:bool = False,
             *args,
             **kwargs) -> None:
         """
-        Rescale inputs of a preset range to a range from 0 to 1.
+        Add pixels to images to provide a consistent size.
 
         Args:
             width: The desired total pixel width.
@@ -50,13 +51,46 @@ class Pad(nn.Module):
         self.width = width
         self.height = height
         self.mode = mode
+        self.pass_larger_images = pass_larger_images
     
     def forward(self, x):
         h,w,c = x.shape
+        pad_h = self.height-h
+        pad_w = self.width-w
+        if self.pass_larger_images:
+            pad_h = max(pad_h,0)
+            pad_w = max(pad_w,0)
         return np.pad(
             x,
-            ((0,self.height-h),(0,self.width-w),(0,0)),
+            ((0,pad_h),(0,pad_w),(0,0)),
             mode=self.mode)
+    
+class Crop(nn.Module):
+    def __init__(
+            self,
+            width=125,
+            height=125,
+            seed=None,
+            *args,
+            **kwargs) -> None:
+        """
+        Take away pixels from images to provide a consistent size.
+
+        Args:
+            width: The desired total pixel width.
+            height: The desired total pixel height.
+            seed: Seed for rng to create reproducible results if desired.
+        """
+        super().__init__(*args, **kwargs)
+        self.width = width
+        self.height = height
+        self.rng = np.random.default_rng(seed=seed)
+    
+    def forward(self, x):
+        h,w,c = x.shape
+        start_x = self.rng.integers(w-self.width)
+        start_y = self.rng.integers(h-self.height)
+        return x[start_x:start_x+self.width, start_y:start_y+self.height, :]
 
 class Select(nn.Module):
     def __init__(
@@ -171,14 +205,24 @@ class PPPicture(PreProcess):
         rescale_images:bool = True,
         omit:bool = False,
         pad_mode:str = None,
-        width=300,
-        height=300,
+        pad_width=200,
+        pad_height=200,
+        pass_larger_images:bool = False,
+        crop:bool = False,
+        crop_width=125,
+        crop_height=125,
+        seed:int = None,
         *args,
         **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.rescale = RescaleColor() if rescale_images else None
         self.select = Select(do_not_include=omit) if omit else None
-        self.pad = Pad(width=width, height=height, mode=pad_mode) if pad_mode else None
+        self.pad = Pad(
+            width=pad_width,
+            height=pad_height,
+            mode=pad_mode,
+            pass_larger_images=pass_larger_images) if pad_mode else None
+        self.crop = Crop(width=crop_width, height=crop_height, seed=seed) if crop else None
 
 class PPLabels(PreProcess):
     def __init__(

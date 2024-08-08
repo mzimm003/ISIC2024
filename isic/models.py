@@ -27,9 +27,9 @@ class Classifier(nn.Module):
     def __init__(
             self,
             embedding_dim:int = 64,
-            img_height:int = 300,
-            img_width:int = 300,
-            patch_size:int = 30,
+            img_height:int = 125,
+            img_width:int = 125,
+            patch_size:int = 5,
             nhead:int = 8,
             layers:int = 4,
             dim_feedforward:int = 1024,

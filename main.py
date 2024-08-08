@@ -232,7 +232,7 @@ class ClassifierTraining(TrainingScript):
             collate_fn=collate_wrapper,
             pin_memory=True,
             num_workers=num_workers,
-            prefetch_factor=2
+            prefetch_factor=2 if num_workers > 0 else None
             )
 
         self.classifier:nn.Module = classifier
@@ -358,11 +358,16 @@ class ClassifierTraining(TrainingScript):
         self.save_results(self.classifier, metrics)
 
 class Main(Script):
-    def __init__(self, **kwargs) -> None:
+    def __init__(
+            self,
+            debug:bool=False,
+            **kwargs) -> None:
         """
         Args:
+            debug: Flag to run script for debugging.
         """
         super().__init__(**kwargs)
+        self.debug = debug
     
     def setup(self):
         pass
@@ -374,7 +379,7 @@ class Main(Script):
                 annotations_file="train-metadata.csv",
                 img_file="train-image.hdf5",
                 img_dir="train-image",
-                img_transform=PPPicture(pad_mode='edge'),
+                img_transform=PPPicture(pad_mode='edge', pass_larger_images=True, crop=True),
                 annotation_transform=PPLabels(
                     exclusions=[
                         "isic_id",
@@ -397,6 +402,7 @@ class Main(Script):
                     ],
                     fill_nan_values=[-1, 0],
                     ),
+                balance_augment=True,
             ),
             feature_reducer_path="./models/feature_reduction/PCA(n_components=0.9999)/model.onnx",
             classifier=ModelReg.Classifier,
@@ -406,7 +412,7 @@ class Main(Script):
             optimizer=OptimizerReg.adam,
             criterion=CriterionReg.cross_entropy,
             save_path="./models/classifier",
-            num_workers=os.cpu_count()-1,
+            num_workers=os.cpu_count()-1 if not self.debug else 0,
             )
         # script = FeatureReductionForTraining(
         #     dataset=DatasetReg.SkinLesions,
