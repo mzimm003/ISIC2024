@@ -124,7 +124,8 @@ class SkinLesions(Dataset):
             img_transform:nn.Module = None,
             annotation_transform:nn.Module = None,
             annotations_only:bool = False,
-            label_desc:str = 'target'):
+            label_desc:str = 'target',
+            balance_augment:bool = False):
         metadata = pd.read_csv(annotations_file, low_memory=False)
         
         self.label_desc = label_desc
@@ -145,6 +146,17 @@ class SkinLesions(Dataset):
             metadata = self.annotation_transform(metadata)
         self.annotations = torch.tensor(metadata.drop(self.label_desc, axis=1).values)
         self.labels = torch.tensor(metadata[self.label_desc])
+        if balance_augment:
+            unq_labels, label_counts = self.labels.unique(return_counts=True)
+            repeat_for_balance = label_counts.max()//label_counts
+            new_labels = []
+            new_annotations = []
+            for lbl, rpt in zip(unq_labels, repeat_for_balance):
+                mask = self.labels == lbl
+                new_labels.append(self.labels[mask].repeat(rpt))
+                new_annotations.append(self.annotations[mask].repeat(rpt, 1))
+            self.labels = torch.cat(new_labels)
+            self.annotations = torch.cat(new_annotations)
 
     def __get_img_listing(self, idx):
         return Dataset.mem_safe_val_and_offset_to_string(
