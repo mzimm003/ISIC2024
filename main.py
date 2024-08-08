@@ -42,22 +42,36 @@ from isic.datasets import DatasetReg
 class TrainingScript(Script):
     data: Type[Dataset]
     save_path: Union[str, Path]
-    def save_model(self, model):
-        inp, target = next(iter(self.data))
-        onx = convert_sklearn(model, initial_types=[("X", FloatTensorType([None, inp.shape[-1]]))])
-        save_file = self.save_path / "{}/model.onnx".format(str(model))
+    def save_model(self, model, data_input_sample):
+        if not isinstance(data_input_sample, tuple):
+            data_input_sample = (data_input_sample,)
+        onx = None
+        if isinstance(model, nn.Module):
+            onx = torch.onnx.dynamo_export(model, *data_input_sample)
+        else:
+            init_types = [("X{}".format(i), FloatTensorType([None, inp_i.shape[-1]]))
+                        for i, inp_i in enumerate(data_input_sample)]
+            onx = convert_sklearn(model, initial_types=init_types)
+        save_file = self.save_path / "{}/model.onnx".format(self.get_model_name(model))
         if not save_file.parent.exists():
             save_file.parent.mkdir(parents=True)
-        with open(save_file, "wb") as f:
-            f.write(onx.SerializeToString())
+        if isinstance(model, nn.Module):
+            onx.save(str(save_file))
+        else:
+            with open(save_file, "wb") as f:
+                f.write(onx.SerializeToString())
 
     def save_results(self, model, results):
-        save_file = self.save_path / "{}/results.json".format(str(model))
+        save_file = self.save_path / "{}/results.json".format(self.get_model_name(model))
         if not save_file.parent.exists():
             save_file.parent.mkdir(parents=True)
-        with open(save_file, "wb") as f:
+        with open(save_file, "w") as f:
             json.dump(results, f)
     
+    def get_model_name(self, model):
+        name = model.name() if hasattr(model, "name") else str(model)
+        return name
+
     def process_data(self, data, model:nn.Module):
         param_ref = next(iter(model.parameters()))
         img = data.img.to(device=param_ref.device, dtype=param_ref.dtype)
@@ -65,8 +79,8 @@ class TrainingScript(Script):
         target = data.tgt.to(device=param_ref.device)
         return img, fet, target
     
-    def process_output(self, output):
-        return output
+    def process_output(self, output:torch.Tensor):
+        return output.max(-1).indices
     
     def infer_itr(
             self,
@@ -78,7 +92,8 @@ class TrainingScript(Script):
             target,
             return_acc=False,
             return_prec=False,
-            return_recall=False):
+            return_recall=False,
+            metrics_as_totals=False):
         ret = {}
         if model.training:
             optimizer.zero_grad()
@@ -94,11 +109,26 @@ class TrainingScript(Script):
 
         result = self.process_output(output)
         if return_acc:
-            ret['acc'] = ((result.int() == target.int()).sum()/target.numel()).item()
+            num = (result.int() == target.int()).sum()
+            denom = target.numel()
+            if metrics_as_totals:
+                ret['acc'] = (num.item(), denom)
+            else:
+                ret['acc'] = (num/denom).item()
         if return_prec:
-            ret['prec'] = (target.int()[result.int() == 1].sum()/(result.int() == 1).sum()).item()
+            num = target.int()[result.int() == 1].sum()
+            denom = (result.int() == 1).sum()
+            if metrics_as_totals:
+                ret['prec'] = (num.item(), denom.item())
+            else:
+                ret['prec'] = (num/denom).item()
         if return_recall:
-            ret['recall'] = (target.int()[result.int() == 1].sum()/(target.int() == 1).sum()).item()
+            num = target.int()[result.int() == 1].sum()
+            denom = (target.int() == 1).sum()
+            if metrics_as_totals:
+                ret['recall'] = (num.item(), denom.item())
+            else:
+                ret['recall'] = (num/denom).item()
         return ret
 
 class FeatureReductionForTraining(TrainingScript):
@@ -135,7 +165,7 @@ class FeatureReductionForTraining(TrainingScript):
     def run(self):
         inp, tgt = self.data[:]
         self.feature_reducer.fit(inp, tgt)
-        self.save_model(self.feature_reducer)
+        self.save_model(self.feature_reducer, inp)
 
 class SimpleCustomBatch:
     def __init__(self, data, feature_reducer):
@@ -202,7 +232,7 @@ class ClassifierTraining(TrainingScript):
             collate_fn=collate_wrapper,
             pin_memory=True,
             num_workers=num_workers,
-            # prefetch_factor=2
+            prefetch_factor=2
             )
 
         self.classifier:nn.Module = classifier
@@ -229,8 +259,10 @@ class ClassifierTraining(TrainingScript):
             )
         self.classifier = ModelReg.initialize(
             self.classifier, self.classifier_kwargs)
+        device = (torch.device('cuda') if torch.cuda.is_available() else 'cpu')
+        print("Expected device:{}".format(device))
         self.classifier.to(
-            device=(torch.device('cuda') if torch.cuda.is_available() else 'cpu'))
+            device=device)
         self.optimizer = OptimizerReg.initialize(
             self.optimizer, self.classifier.parameters(), self.optimizer_kwargs)
         self.criterion = CriterionReg.initialize(
@@ -242,6 +274,13 @@ class ClassifierTraining(TrainingScript):
         metrics["k_fold_train_loss"] = []
         metrics["k_fold_val_loss"] = []
         metrics["k_fold_val_acc"] = []
+        metrics["k_fold_val_prec"] = []
+        metrics["k_fold_val_prec_num"] = []
+        metrics["k_fold_val_prec_denom"] = []
+        metrics["k_fold_val_recall"] = []
+        metrics["k_fold_val_recall_num"] = []
+        metrics["k_fold_val_recall_denom"] = []
+        data_inp_sample = None
         for i, (train_fold, val_fold) in enumerate(self.kf.split(self.data)):
             train_loader = DataLoader(
                 Subset(self.data, train_fold),
@@ -256,6 +295,7 @@ class ClassifierTraining(TrainingScript):
             metrics["k_fold_train_loss"].append(0)
             for data in train_loader:
                 img, fet, tgt = self.process_data(data, self.classifier)
+                data_inp_sample = (img, fet)
 
                 result = self.infer_itr(
                     model=self.classifier,
@@ -272,6 +312,12 @@ class ClassifierTraining(TrainingScript):
             self.classifier.eval()
             metrics["k_fold_val_loss"].append(0)
             metrics["k_fold_val_acc"].append(0)
+            metrics["k_fold_val_prec"].append(0)
+            metrics["k_fold_val_recall"].append(0)
+            metrics["k_fold_val_prec_num"].append(0)
+            metrics["k_fold_val_prec_denom"].append(0)
+            metrics["k_fold_val_recall_num"].append(0)
+            metrics["k_fold_val_recall_denom"].append(0)
             for data in val_loader:
                 img, fet, tgt = self.process_data(data, self.classifier)
 
@@ -282,20 +328,33 @@ class ClassifierTraining(TrainingScript):
                     img=img,
                     fet=fet,
                     target=tgt,
-                    return_acc=True
+                    return_acc=True,
+                    return_prec=True,
+                    return_recall=True,
+                    metrics_as_totals=True
                 )
                 metrics["k_fold_val_loss"][i] += result['loss']
-                metrics["k_fold_val_acc"][i] += result['loss']
+                metrics["k_fold_val_acc"][i] += result['acc'][0]/result['acc'][1]
+                metrics["k_fold_val_prec_num"][i] += result['prec'][0]
+                metrics["k_fold_val_prec_denom"][i] += result['prec'][1]
+                metrics["k_fold_val_recall_num"][i] += result['recall'][0]
+                metrics["k_fold_val_recall_denom"][i] += result['recall'][1]
             metrics["k_fold_val_loss"][i] = (
-                metrics["k_fold_val_loss"][i] / len(train_loader))
+                metrics["k_fold_val_loss"][i] / len(val_loader))
             metrics["k_fold_val_acc"][i] = (
-                metrics["k_fold_val_acc"][i] / len(train_loader))
+                metrics["k_fold_val_acc"][i] / len(val_loader))
+            metrics["k_fold_val_prec"][i] = (
+                np.float64(metrics["k_fold_val_prec_num"][i]) / metrics["k_fold_val_prec_denom"][i])
+            metrics["k_fold_val_recall"][i] = (
+                np.float64(metrics["k_fold_val_recall_num"][i]) / metrics["k_fold_val_recall_denom"][i])
 
         # Summarize training epoch
         metrics["mean_train_loss"] = np.mean(metrics["k_fold_train_loss"])
         metrics["mean_val_loss"] = np.mean(metrics["k_fold_val_loss"])
         metrics["mean_val_acc"] = np.mean(metrics["k_fold_val_acc"])
-        self.save_model(self.classifier)
+        metrics["mean_val_prec"] = np.mean(metrics["k_fold_val_prec"])
+        metrics["mean_val_recall"] = np.mean(metrics["k_fold_val_recall"])
+        self.save_model(self.classifier, data_inp_sample)
         self.save_results(self.classifier, metrics)
 
 class Main(Script):
@@ -336,8 +395,8 @@ class Main(Script):
                     fill_nan_selections=[
                         "age_approx",
                     ],
-                    fill_nan_values=[-1, 0]
-                    )
+                    fill_nan_values=[-1, 0],
+                    ),
             ),
             feature_reducer_path="./models/feature_reduction/PCA(n_components=0.9999)/model.onnx",
             classifier=ModelReg.Classifier,
@@ -347,7 +406,7 @@ class Main(Script):
             optimizer=OptimizerReg.adam,
             criterion=CriterionReg.cross_entropy,
             save_path="./models/classifier",
-            # num_workers=os.cpu_count()-1,
+            num_workers=os.cpu_count()-1,
             )
         # script = FeatureReductionForTraining(
         #     dataset=DatasetReg.SkinLesions,

@@ -15,13 +15,21 @@ from isic.registry import (
     ActivationReg
 )
 
+class Dummy(nn.Module):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.least = nn.LazyLinear(2)
+    
+    def forward(self, img:torch.Tensor, fet:torch.Tensor):
+        return self.least(fet)
+
 class Classifier(nn.Module):
     def __init__(
             self,
             embedding_dim:int = 64,
-            img_height:int = 250,
-            img_width:int = 250,
-            patch_size:int = 10,
+            img_height:int = 300,
+            img_width:int = 300,
+            patch_size:int = 30,
             nhead:int = 8,
             layers:int = 4,
             dim_feedforward:int = 1024,
@@ -81,9 +89,9 @@ class Classifier(nn.Module):
         width = img.shape[-3]
         height = img.shape[-2]
         x_emb = self.positional_embedding_x(
-            torch.arange(width//self.patch_size))
+            torch.arange(width//self.patch_size, device=param_ref.device))
         y_emb = self.positional_embedding_y(
-            torch.arange(height//self.patch_size))
+            torch.arange(height//self.patch_size, device=param_ref.device))
         pos_emb = (
             torch.tile(x_emb[None,:], (height//self.patch_size,1,1)) +
             torch.tile(y_emb[:,None], (1,width//self.patch_size,1))
@@ -96,6 +104,9 @@ class Classifier(nn.Module):
         logits = self.is_malignant(trans_logits)
         return logits
 
+    def name(self):
+        return "test"
 
 class ModelReg(Registry):
     Classifier = Classifier
+    Dummy = Dummy

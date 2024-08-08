@@ -33,8 +33,8 @@ class RescaleColor(nn.Module):
 class Pad(nn.Module):
     def __init__(
             self,
-            width=250,
-            height=250,
+            width=300,
+            height=300,
             mode='edge',
             *args,
             **kwargs) -> None:
@@ -171,8 +171,8 @@ class PPPicture(PreProcess):
         rescale_images:bool = True,
         omit:bool = False,
         pad_mode:str = None,
-        width=250,
-        height=250,
+        width=300,
+        height=300,
         *args,
         **kwargs) -> None:
         super().__init__(*args, **kwargs)
