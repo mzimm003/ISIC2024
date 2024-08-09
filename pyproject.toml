@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "quickscript"
+name = "isic"
 authors = [
     {name = "Mark Zimmerman", email = "mzimm003@gmail.com"},
 ]
