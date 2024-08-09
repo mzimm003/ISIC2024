@@ -9,6 +9,7 @@ from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 
 import numpy as np
+import pandas as pd
 
 import os
 import json
@@ -46,18 +47,28 @@ class TrainingScript(Script):
         if not isinstance(data_input_sample, tuple):
             data_input_sample = (data_input_sample,)
         onx = None
+        save_file = self.save_path / "{}/model.onnx".format(self.get_model_name(model))
+        if not save_file.parent.exists():
+            save_file.parent.mkdir(parents=True)
+
         if isinstance(model, nn.Module):
-            onx = torch.onnx.dynamo_export(model, *data_input_sample)
+            # export_options = torch.onnx.ExportOptions(dynamic_shapes=True)
+            onx = torch.onnx.export(
+                model,
+                data_input_sample,
+                input_names=["img","fet"],
+                f = save_file,
+                dynamic_axes={
+                    "img": {0: "batch"},
+                    "fet": {0: "batch"},
+                }
+            )
+            # onx.save(str(save_file))
+                # export_options=export_options)
         else:
             init_types = [("X{}".format(i), FloatTensorType([None, inp_i.shape[-1]]))
                         for i, inp_i in enumerate(data_input_sample)]
             onx = convert_sklearn(model, initial_types=init_types)
-        save_file = self.save_path / "{}/model.onnx".format(self.get_model_name(model))
-        if not save_file.parent.exists():
-            save_file.parent.mkdir(parents=True)
-        if isinstance(model, nn.Module):
-            onx.save(str(save_file))
-        else:
             with open(save_file, "wb") as f:
                 f.write(onx.SerializeToString())
 
@@ -173,14 +184,19 @@ class SimpleCustomBatch:
         transposed_inps = list(zip(*transposed_data[0]))
         self.img = torch.stack(transposed_inps[0], 0)
         self.fet = torch.stack(transposed_inps[1], 0)
-        self.fet = torch.tensor(feature_reducer(self.fet.numpy()))
-        self.tgt = torch.stack(transposed_data[1], 0).long()
+        self.fet = torch.tensor(feature_reducer(X=self.fet.numpy().astype(np.float32)))
+        self.tgt = None
+        if isinstance(transposed_data[1][0], str):
+            self.tgt = transposed_data[1]
+        else:
+            self.tgt = torch.stack(transposed_data[1], 0).long()
 
     # custom memory pinning method on custom type
     def pin_memory(self):
         self.img = self.img.pin_memory()
         self.fet = self.fet.pin_memory()
-        self.tgt = self.tgt.pin_memory()
+        if not isinstance(self.tgt, tuple):
+            self.tgt = self.tgt.pin_memory()
         return self
 
 def collate_wrapper(batch, feature_reducer):
@@ -357,6 +373,81 @@ class ClassifierTraining(TrainingScript):
         self.save_model(self.classifier, data_inp_sample)
         self.save_results(self.classifier, metrics)
 
+class Notebook(Script):
+    def __init__(
+            self,
+            dataset:Union[str, DatasetReg, Type[Dataset]] = None,
+            dataset_kwargs:Dict[str, Any] = None,
+            feature_reducer_path:Union[str, Path] = None,
+            classifier_path:Union[str, Path] = None,
+            save_path:Union[str, Path] = None,
+            batch_size:int = 64,
+            shuffle:bool = False,
+            num_workers:int = 0,
+            **kwargs) -> None:
+        """
+        Args:
+            dataset: The dataset class to be used.
+            dataset_kwargs: Configuration for the dataset.
+            feature_reducer_path: Path to feature reducing model, if desired.
+            classifier_path: Path to classifier model.
+            save_path: Specify a path to which classifier should be saved.
+            k_fold_splits: Number of folds used for dataset in training.
+            batch_size: Number of data points included in training batches.
+            shuffle: Whether to shuffle data points.
+            num_workers: For multiprocessing.
+        """
+        super().__init__(**kwargs)
+        self.data = dataset
+        self.ds_kwargs = dataset_kwargs if dataset_kwargs else {}
+        self.feature_reducer_path = feature_reducer_path
+        self.classifier_path = classifier_path
+        self.dl_kwargs = dict(
+            batch_size=batch_size,
+            shuffle=shuffle,
+            collate_fn=collate_wrapper,
+            pin_memory=True,
+            num_workers=num_workers,
+            prefetch_factor=2 if num_workers > 0 else None
+            )
+        self.save_path = save_path
+
+    def setup(self):
+        self.data = DatasetReg.initialize(
+            self.data, self.ds_kwargs)
+        if self.feature_reducer_path:
+            self.feature_reducer = Registry.load_model(self.feature_reducer_path)
+            self.dl_kwargs['collate_fn'] = partial(
+                self.dl_kwargs['collate_fn'],
+                feature_reducer=self.feature_reducer
+            )
+        else:
+            self.dl_kwargs['collate_fn'] = partial(
+                self.dl_kwargs['collate_fn'],
+                feature_reducer=nn.Identity()
+            )
+        self.classifier = Registry.load_model(self.classifier_path)
+        self.save_path = Path(self.save_path)
+
+    def run(self):
+        test_loader = DataLoader(
+            self.data,
+            ** self.dl_kwargs
+        )
+
+        sub = []
+
+        for data in test_loader:
+            img = data.img
+            fet = data.fet
+
+            result = self.classifier(img=img.numpy().astype(np.float32), fet=fet.numpy().astype(np.float32))
+            mal_confidence = torch.tensor(result).softmax(1)[:,1]
+            sub.extend(list(zip(data.tgt, mal_confidence.numpy())))
+        
+        sub = pd.DataFrame(sub, columns=['isic_id','target'])
+        sub.to_csv(self.save_path/"submission.csv", index=False)
+
 class Main(Script):
     def __init__(
             self,
@@ -373,6 +464,37 @@ class Main(Script):
         pass
 
     def run(self):
+        """
+        """
+        """CREATE SUBMISSION"""
+        # script = Notebook(
+        #     dataset=DatasetReg.SkinLesions,
+        #     dataset_kwargs=dict(
+        #         annotations_file="test-metadata.csv",
+        #         img_file="test-image.hdf5",
+        #         img_transform=PPPicture(pad_mode='edge', pass_larger_images=True, crop=True),
+        #         annotation_transform=PPLabels(
+        #             exclusions=[
+        #                 "isic_id",
+        #                 "patient_id",
+        #                 "attribution",
+        #                 "copyright_license",
+        #                 "image_type"
+        #                 ],
+        #             exclude_uninformative=False,
+        #             fill_nan_selections=[
+        #                 "age_approx",
+        #             ],
+        #             fill_nan_values=[-1, 0],
+        #             ),
+        #         ret_id_as_label=True,
+        #     ),
+        #     feature_reducer_path="./models/feature_reduction/PCA(n_components=0.9999)/model.onnx",
+        #     classifier_path="./models/classifier/test/model.onnx",
+        #     save_path=".",
+        #     num_workers=os.cpu_count()-1 if not self.debug else 0,
+        #     )
+        """TRAIN CLASSIFIER"""
         script = ClassifierTraining(
             dataset=DatasetReg.SkinLesions,
             dataset_kwargs=dict(
@@ -402,6 +524,7 @@ class Main(Script):
                     ],
                     fill_nan_values=[-1, 0],
                     ),
+                label_desc='target',
                 balance_augment=True,
             ),
             feature_reducer_path="./models/feature_reduction/PCA(n_components=0.9999)/model.onnx",
@@ -411,9 +534,11 @@ class Main(Script):
             ),
             optimizer=OptimizerReg.adam,
             criterion=CriterionReg.cross_entropy,
+            batch_size=512,
             save_path="./models/classifier",
             num_workers=os.cpu_count()-1 if not self.debug else 0,
             )
+        """TRAIN FEATURE REDUCER"""
         # script = FeatureReductionForTraining(
         #     dataset=DatasetReg.SkinLesions,
         #     dataset_kwargs=dict(
@@ -443,7 +568,8 @@ class Main(Script):
         #             ],
         #             fill_nan_values=[-1, 0]
         #             ),
-        #         annotations_only=True
+        #         annotations_only=True,
+        #         label_desc='target',
         #     ),
         #     feature_reducer = "PCA",
         #     feature_reducer_kwargs={

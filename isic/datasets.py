@@ -124,8 +124,9 @@ class SkinLesions(Dataset):
             img_transform:nn.Module = None,
             annotation_transform:nn.Module = None,
             annotations_only:bool = False,
-            label_desc:str = 'target',
-            balance_augment:bool = False):
+            label_desc:str = None,
+            balance_augment:bool = False,
+            ret_id_as_label:bool = False):
         metadata = pd.read_csv(annotations_file, low_memory=False)
         
         self.label_desc = label_desc
@@ -133,6 +134,7 @@ class SkinLesions(Dataset):
         self.img_file = None
         self.img_dir = None
         self.img_listing = None
+        self.ret_id_as_label = ret_id_as_label
 
         if not self.annotations_only:
             self.img_file = img_file
@@ -144,8 +146,15 @@ class SkinLesions(Dataset):
         self.annotation_transform = annotation_transform
         if self.annotation_transform:
             metadata = self.annotation_transform(metadata)
-        self.annotations = torch.tensor(metadata.drop(self.label_desc, axis=1).values)
-        self.labels = torch.tensor(metadata[self.label_desc])
+        self.annotations = None
+        self.labels = None
+        if self.label_desc:
+            self.annotations = torch.tensor(metadata.drop(self.label_desc, axis=1).values)
+            self.labels = torch.tensor(metadata[self.label_desc])
+        else:
+            self.annotations = torch.tensor(metadata.values)
+            self.labels = None
+
         if balance_augment:
             unq_labels, label_counts = self.labels.unique(return_counts=True)
             repeat_for_balance = label_counts.max()//label_counts
@@ -165,19 +174,23 @@ class SkinLesions(Dataset):
             idx)
 
     def __len__(self):
-        return len(self.labels)
+        # return 128
+        return len(self.annotations)
 
     def __getitem__(self, idx):
         data = None
-        label = None
+        label = torch.tensor(-1)
         annotations = self.annotations[idx]
-        label = self.labels[idx]
+        if self.label_desc:
+            label = self.labels[idx]
 
         if self.annotations_only:
             data = annotations
         else:
             image_data = h5py.File(self.img_file, "r")
             listing = self.__get_img_listing(idx)
+            if self.ret_id_as_label:
+                label = listing
             image = np.array(image_data[listing])
             image = np.array(Image.open(io.BytesIO(image)),dtype=np.uint8)
             if self.img_transform:

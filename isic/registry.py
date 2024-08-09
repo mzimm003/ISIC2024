@@ -34,9 +34,15 @@ class Registry(Enum):
     def load_model(load_path):
         class Model:
             def __init__(slf) -> None:
-                slf.model = onnxruntime.InferenceSession(load_path)
-            def __call__(slf, x, *args: Any, **kwds: Any) -> Any:
-                return slf.model.run(None, {"X":x.astype(np.float32)})[0]
+                slf.model = onnxruntime.InferenceSession(load_path, providers = [
+                    # ('CUDAExecutionProvider', {
+                    #     'device_id': 0,
+                    #     'gpu_mem_limit': 15 * 1024 * 1024 * 1024,
+                    # }),
+                    'CPUExecutionProvider',
+                    ])
+            def __call__(slf, *args: Any, **kwds: Any) -> Any:
+                return slf.model.run(None, kwds)[0]
         return Model()
 
 class FeatureReducersReg(Registry):
