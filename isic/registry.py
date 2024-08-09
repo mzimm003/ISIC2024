@@ -35,10 +35,10 @@ class Registry(Enum):
         class Model:
             def __init__(slf) -> None:
                 slf.model = onnxruntime.InferenceSession(load_path, providers = [
-                    # ('CUDAExecutionProvider', {
-                    #     'device_id': 0,
-                    #     'gpu_mem_limit': 15 * 1024 * 1024 * 1024,
-                    # }),
+                    ('CUDAExecutionProvider', {
+                        'device_id': 0,
+                        'gpu_mem_limit': 15 * 1024 * 1024 * 1024,
+                    }),
                     'CPUExecutionProvider',
                     ])
             def __call__(slf, *args: Any, **kwds: Any) -> Any:

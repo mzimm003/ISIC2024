@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "isic"
@@ -8,19 +8,24 @@ authors = [
     {name = "Mark Zimmerman", email = "mzimm003@gmail.com"},
 ]
 version = "0.0.1"
-dependencies = [
-  "torch",
-  "numpy",
-  "pandas",
-  "pillow",
-  "h5py",
-  "scikit-learn",
-  "onnxruntime"
-]
+
+[tool.poetry.dependencies]
+torch="*"
+numpy="*"
+pandas="*"
+pillow="*"
+h5py="*"
+scikit-learn="*"
+onnxruntime-gpu="*"
 
 
-[tool.setuptools.packages]
-find = {}
+[tool.poetry]
+name = "isic"
+version = "0.1.0"
+description = ""
+authors = ["Mark Zimmerman <mzimm003@gmail.com>"]
+readme = "README.md"
+packages = [{include = "isic"}]
 
 [project.urls]
 Homepage = "https://github.com/mzimm003/ISIC2024"
