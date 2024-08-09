@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quickscript"
+authors = [
+    {name = "Mark Zimmerman", email = "mzimm003@gmail.com"},
+]
+version = "0.0.1"
+dependencies = [
+  "torch",
+  "numpy",
+  "pandas",
+  "pillow",
+  "h5py",
+  "scikit-learn",
+  "onnxruntime"
+]
+
+
+[tool.setuptools.packages]
+find = {}
+
+[project.urls]
+Homepage = "https://github.com/mzimm003/ISIC2024"
+Issues = "https://github.com/mzimm003/ISIC2024/issues"
