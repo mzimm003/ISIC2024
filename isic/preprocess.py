@@ -229,13 +229,14 @@ class PPLabels(PreProcess):
         self,
         selections = None,
         exclusions = None,
+        exclude_uninformative = True,
         ordinal_encoding:bool = True,
         fill_nan_selections = None,
         fill_nan_values = None,
         *args,
         **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.select = Select(selections=selections, exclusions=exclusions)
+        self.select = Select(selections=selections, exclusions=exclusions, exclude_uninformative=exclude_uninformative)
         self.one_hot = OrdinalEncoding() if ordinal_encoding else None
         fill_nan_config = {'selections':fill_nan_selections}
         if fill_nan_values:
