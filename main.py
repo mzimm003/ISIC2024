@@ -467,40 +467,11 @@ class Main(Script):
         """
         """
         """CREATE SUBMISSION"""
-        # script = Notebook(
-        #     dataset=DatasetReg.SkinLesions,
-        #     dataset_kwargs=dict(
-        #         annotations_file="test-metadata.csv",
-        #         img_file="test-image.hdf5",
-        #         img_transform=PPPicture(pad_mode='edge', pass_larger_images=True, crop=True),
-        #         annotation_transform=PPLabels(
-        #             exclusions=[
-        #                 "isic_id",
-        #                 "patient_id",
-        #                 "attribution",
-        #                 "copyright_license",
-        #                 "image_type"
-        #                 ],
-        #             exclude_uninformative=False,
-        #             fill_nan_selections=[
-        #                 "age_approx",
-        #             ],
-        #             fill_nan_values=[-1, 0],
-        #             ),
-        #         ret_id_as_label=True,
-        #     ),
-        #     feature_reducer_path="./models/feature_reduction/PCA(n_components=0.9999)/model.onnx",
-        #     classifier_path="./models/classifier/test/model.onnx",
-        #     save_path=".",
-        #     num_workers=os.cpu_count()-1 if not self.debug else 0,
-        #     )
-        """TRAIN CLASSIFIER"""
-        script = ClassifierTraining(
+        script = Notebook(
             dataset=DatasetReg.SkinLesions,
             dataset_kwargs=dict(
-                annotations_file="train-metadata.csv",
-                img_file="train-image.hdf5",
-                img_dir="train-image",
+                annotations_file="test-metadata.csv",
+                img_file="test-image.hdf5",
                 img_transform=PPPicture(pad_mode='edge', pass_larger_images=True, crop=True),
                 annotation_transform=PPLabels(
                     exclusions=[
@@ -508,36 +479,65 @@ class Main(Script):
                         "patient_id",
                         "attribution",
                         "copyright_license",
-                        "lesion_id",
-                        "iddx_full",
-                        "iddx_1",
-                        "iddx_2",
-                        "iddx_3",
-                        "iddx_4",
-                        "iddx_5",
-                        "mel_mitotic_index",
-                        "mel_thick_mm",
-                        "tbp_lv_dnn_lesion_confidence",
+                        "image_type"
                         ],
+                    exclude_uninformative=False,
                     fill_nan_selections=[
                         "age_approx",
                     ],
                     fill_nan_values=[-1, 0],
                     ),
-                label_desc='target',
-                balance_augment=True,
+                ret_id_as_label=True,
             ),
             feature_reducer_path="./models/feature_reduction/PCA(n_components=0.9999)/model.onnx",
-            classifier=ModelReg.Classifier,
-            classifier_kwargs=dict(
-                activation=ActivationReg.relu,
-            ),
-            optimizer=OptimizerReg.adam,
-            criterion=CriterionReg.cross_entropy,
-            batch_size=512,
-            save_path="./models/classifier",
+            classifier_path="./models/classifier/test/model.onnx",
+            save_path=".",
             num_workers=os.cpu_count()-1 if not self.debug else 0,
             )
+        """TRAIN CLASSIFIER"""
+        # script = ClassifierTraining(
+        #     dataset=DatasetReg.SkinLesions,
+        #     dataset_kwargs=dict(
+        #         annotations_file="train-metadata.csv",
+        #         img_file="train-image.hdf5",
+        #         img_dir="train-image",
+        #         img_transform=PPPicture(pad_mode='edge', pass_larger_images=True, crop=True),
+        #         annotation_transform=PPLabels(
+        #             exclusions=[
+        #                 "isic_id",
+        #                 "patient_id",
+        #                 "attribution",
+        #                 "copyright_license",
+        #                 "lesion_id",
+        #                 "iddx_full",
+        #                 "iddx_1",
+        #                 "iddx_2",
+        #                 "iddx_3",
+        #                 "iddx_4",
+        #                 "iddx_5",
+        #                 "mel_mitotic_index",
+        #                 "mel_thick_mm",
+        #                 "tbp_lv_dnn_lesion_confidence",
+        #                 ],
+        #             fill_nan_selections=[
+        #                 "age_approx",
+        #             ],
+        #             fill_nan_values=[-1, 0],
+        #             ),
+        #         label_desc='target',
+        #         balance_augment=True,
+        #     ),
+        #     feature_reducer_path="./models/feature_reduction/PCA(n_components=0.9999)/model.onnx",
+        #     classifier=ModelReg.Classifier,
+        #     classifier_kwargs=dict(
+        #         activation=ActivationReg.relu,
+        #     ),
+        #     optimizer=OptimizerReg.adam,
+        #     criterion=CriterionReg.cross_entropy,
+        #     batch_size=512,
+        #     save_path="./models/classifier",
+        #     num_workers=os.cpu_count()-1 if not self.debug else 0,
+        #     )
         """TRAIN FEATURE REDUCER"""
         # script = FeatureReductionForTraining(
         #     dataset=DatasetReg.SkinLesions,
