@@ -3,9 +3,9 @@
 *.hdf5
 .vscode
 train-image/
-models/
+/models/
 __pycache__
 report_dynamo_export.sarif
 *.egg*
 test.py
-build
+/build/
