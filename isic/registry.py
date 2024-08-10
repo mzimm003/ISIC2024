@@ -31,13 +31,13 @@ class Registry(Enum):
         return obj(**kwargs)
     
     @staticmethod
-    def load_model(load_path):
+    def load_model(load_path, cuda=False):
         class Model:
             def __init__(slf) -> None:
                 slf.model = onnxruntime.InferenceSession(load_path, providers = [
                     'CUDAExecutionProvider',
                     'CPUExecutionProvider',
-                    ])
+                    ] if cuda else ['CPUExecutionProvider'])
             def __call__(slf, *args: Any, **kwds: Any) -> Any:
                 return slf.model.run(None, kwds)[0]
         return Model()
