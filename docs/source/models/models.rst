@@ -117,7 +117,7 @@ Features
 
 Version 1
 -----------
-A vision transformer taking features 
+A vision transformer taking features as query tokens for the decoder.
 
 Preprocessing
 ^^^^^^^^^^^^^^^^

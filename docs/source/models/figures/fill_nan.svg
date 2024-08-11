@@ -10,8 +10,8 @@
    sodipodi:docname="fill_nan.svg"
    inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
    inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/fill_nan.png"
-   inkscape:export-xdpi="97.075996"
-   inkscape:export-ydpi="97.075996"
+   inkscape:export-xdpi="109.80917"
+   inkscape:export-ydpi="109.80917"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -86,7 +86,7 @@
        style="font-size:13.3333px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;white-space:pre;shape-inside:url(#rect31359);fill:#000000;stroke-width:0.303121"><tspan
          x="-129.76367"
          y="118.42995"
-         id="tspan223249">A</tspan></text>
+         id="tspan223335">A</tspan></text>
     <rect
        style="fill:none;stroke:#000000;stroke-width:0.264999;stroke-linecap:round;stroke-dashoffset:45.3543;paint-order:stroke fill markers"
        id="rect868-36"
@@ -291,28 +291,43 @@
        width="19.888351"
        height="9.9727554"
        x="61.593765"
-       y="36.421139" />
+       y="36.421139"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324" />
     <rect
        style="fill:none;stroke:#000000;stroke-width:0.264998;stroke-linecap:round;stroke-dashoffset:45.3543;paint-order:stroke fill markers"
        id="rect868-3-0-4"
        width="19.888351"
        height="23.659449"
        x="61.593765"
-       y="46.393894" />
+       y="46.393894"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324" />
     <path
        style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="M 64.733273,62.171304 H 78.34262"
-       id="path1168-1-1-5" />
+       id="path1168-1-1-5"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324" />
     <path
        style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="M 64.733273,54.200285 H 78.34262"
-       id="path1168-27-8-4" />
+       id="path1168-27-8-4"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324" />
     <text
        xml:space="preserve"
        style="font-size:8.37278px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;fill:#000000;stroke-width:0.264583"
        x="68.623009"
        y="44.212589"
-       id="text42831-6"><tspan
+       id="text42831-6"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324"><tspan
          sodipodi:role="line"
          id="tspan42829-63"
          style="fill:#000000;stroke-width:0.264583"
@@ -323,7 +338,10 @@
        style="font-size:6.35px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
        x="65.330566"
        y="52.400684"
-       id="text80181-0-99"><tspan
+       id="text80181-0-99"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324"><tspan
          sodipodi:role="line"
          id="tspan80179-8-5"
          style="font-size:6.35px;stroke-width:0.264583"
@@ -334,7 +352,10 @@
        style="font-size:6.35px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
        x="65.353821"
        y="60.40271"
-       id="text80181-6-3-2"><tspan
+       id="text80181-6-3-2"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324"><tspan
          sodipodi:role="line"
          id="tspan80179-0-7-1"
          style="font-size:6.35px;stroke-width:0.264583"
@@ -345,7 +366,10 @@
        style="font-size:6.35px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
        x="65.27166"
        y="68.341171"
-       id="text80181-2-8-3"><tspan
+       id="text80181-2-8-3"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324"><tspan
          sodipodi:role="line"
          id="tspan80179-5-2-09"
          style="font-size:6.35px;stroke-width:0.264583"
@@ -357,28 +381,43 @@
        width="19.888351"
        height="9.9727554"
        x="41.70541"
-       y="36.421135" />
+       y="36.421135"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324" />
     <rect
        style="fill:none;stroke:#000000;stroke-width:0.264998;stroke-linecap:round;stroke-dashoffset:45.3543;paint-order:stroke fill markers"
        id="rect868-3-0-3-1"
        width="19.888351"
        height="23.659449"
        x="41.70541"
-       y="46.39389" />
+       y="46.39389"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324" />
     <path
        style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="M 44.844922,62.1713 H 58.454269"
-       id="path1168-1-1-1-3" />
+       id="path1168-1-1-1-3"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324" />
     <path
        style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="M 44.844922,54.200281 H 58.454269"
-       id="path1168-27-8-2-4" />
+       id="path1168-27-8-2-4"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324" />
     <text
        xml:space="preserve"
        style="font-size:8.37278px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;fill:#000000;stroke-width:0.264583"
        x="48.73465"
        y="44.212585"
-       id="text42831-0-5"><tspan
+       id="text42831-0-5"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324"><tspan
          sodipodi:role="line"
          id="tspan42829-6-8"
          style="fill:#000000;stroke-width:0.264583"
@@ -389,7 +428,10 @@
        style="font-size:6.35px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
        x="44.395767"
        y="52.400681"
-       id="text80181-0-8-5"><tspan
+       id="text80181-0-8-5"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324"><tspan
          sodipodi:role="line"
          id="tspan80179-8-7-7"
          style="font-size:6.35px;stroke-width:0.264583"
@@ -400,7 +442,10 @@
        style="font-size:6.35px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
        x="45.467018"
        y="60.402706"
-       id="text80181-6-3-4-3"><tspan
+       id="text80181-6-3-4-3"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324"><tspan
          sodipodi:role="line"
          id="tspan80179-0-7-9-3"
          style="font-size:6.35px;stroke-width:0.264583"
@@ -411,7 +456,10 @@
        style="font-size:6.35px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
        x="44.395767"
        y="68.341171"
-       id="text80181-2-8-2-8"><tspan
+       id="text80181-2-8-2-8"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324"><tspan
          sodipodi:role="line"
          id="tspan80179-5-2-4-9"
          style="font-size:6.35px;stroke-width:0.264583"
@@ -423,28 +471,43 @@
        width="19.888351"
        height="9.9727554"
        x="81.482117"
-       y="36.421135" />
+       y="36.421135"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324" />
     <rect
        style="fill:none;stroke:#000000;stroke-width:0.264998;stroke-linecap:round;stroke-dashoffset:45.3543;paint-order:stroke fill markers"
        id="rect868-3-0-5-5"
        width="19.888351"
        height="23.659449"
        x="81.482117"
-       y="46.39389" />
+       y="46.39389"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324" />
     <path
        style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="M 84.621623,62.171301 H 98.230912"
-       id="path1168-1-1-9-3" />
+       id="path1168-1-1-9-3"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324" />
     <path
        style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="M 84.621623,54.200282 H 98.230912"
-       id="path1168-27-8-1-8" />
+       id="path1168-27-8-1-8"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324" />
     <text
        xml:space="preserve"
        style="font-size:8.37278px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;fill:#000000;stroke-width:0.264583"
        x="88.511375"
        y="44.212585"
-       id="text42831-2-6"><tspan
+       id="text42831-2-6"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324"><tspan
          sodipodi:role="line"
          id="tspan42829-8-0"
          style="fill:#000000;stroke-width:0.264583"
@@ -455,7 +518,10 @@
        style="font-size:6.35px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
        x="83.477943"
        y="52.400684"
-       id="text80181-0-9-3"><tspan
+       id="text80181-0-9-3"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324"><tspan
          sodipodi:role="line"
          id="tspan80179-8-6-3"
          style="font-size:6.35px;stroke-width:0.264583"
@@ -466,7 +532,10 @@
        style="font-size:6.35px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
        x="85.246826"
        y="60.402706"
-       id="text80181-6-3-0-6"><tspan
+       id="text80181-6-3-0-6"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324"><tspan
          sodipodi:role="line"
          id="tspan80179-0-7-6-1"
          style="font-size:6.35px;stroke-width:0.264583"
@@ -477,7 +546,10 @@
        style="font-size:6.35px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
        x="85.246826"
        y="68.341171"
-       id="text80181-2-8-4-8"><tspan
+       id="text80181-2-8-4-8"
+       inkscape:export-filename="/home/mark/Programming/Kaggle Competitions/ISIC2024/docs/source/models/figures/rect868-36-9.png"
+       inkscape:export-xdpi="185.8324"
+       inkscape:export-ydpi="185.8324"><tspan
          sodipodi:role="line"
          id="tspan80179-5-2-0-7"
          style="font-size:6.35px;stroke-width:0.264583"
