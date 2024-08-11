@@ -14,3 +14,17 @@
 .toctree-wrapper a {
     padding: 10px;
 }
+
+.twocol {
+    display: flex;
+    align-items: center;
+}
+
+div.leftside {
+    width: 200%;
+}
+
+div.rightside{
+    padding-left: 30px;
+    padding-top: 20px;
+}

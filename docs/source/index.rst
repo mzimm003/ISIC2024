@@ -12,6 +12,7 @@ ISIC 2024
 
    Competition Site <https://www.kaggle.com/competitions/isic-2024-challenge>
    plan/plan
+   models/models
    notes/notes
    references
 

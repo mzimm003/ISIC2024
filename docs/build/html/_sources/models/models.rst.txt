@@ -109,7 +109,7 @@ Features
             expected by the models for every data point. So, a decision must be
             made on how to fill in missing data. Average values from the data
             points that are complete can be used, or just a value that would
-            otherwise never exist for that feature.
+            otherwise never exist for that feature..
 
         .. container:: rightside
 
