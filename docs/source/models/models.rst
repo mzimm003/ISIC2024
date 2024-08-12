@@ -138,6 +138,8 @@ dataset.
       of a confirmed diagnosis are excluded, including *"iddx_full", "iddx_1",
       "iddx_2", "iddx_3", "iddx_4", "iddx_5", "mel_mitotic_index", "mel_thick_mm",
       "tbp_lv_dnn_lesion_confidence"*.
+    * Ordinal Encoding: All text classifications which remain are assigned a
+      unique (within each feature) id number in place of the text description.      
     * Fill NaN: Some *"age_approx"* values are missing, so these are filled as
       -1 to help the model distinguish and lean less on this less distinctive
       information.
