@@ -117,8 +117,34 @@ Features
 
 Version 1
 -----------
-A vision transformer taking features as query tokens for the decoder.
+A vision transformer taking features as query tokens for the decoder. Image and
+features are preprocessed, features are fed to a feature reducer, then all
+combined by a transformer to produce a classification.
 
 Preprocessing
 ^^^^^^^^^^^^^^^^
-In the case of the ISIC dataset, the smallest images proved overly small...pad then crop...
+**Images** - All image channels are linearly rescaled from [0,255] to [0,1].
+In the case of the ISIC dataset, the smallest images forced a smaller cropping
+of images than desired, so first images are padded to 200x200 (images larger
+than this are unpadded), then all images are cropped to 125x125. The cropping
+window positioning is selected randomly each time the image is loaded from the
+dataset.
+
+**Features** - 
+    
+    * Exclusions: Identification features are excluded from training data for being
+      irrelevant to diagnosis. These include *"isic_id", "patient_id", "lesion_id",
+      "attribution", "copyright_license"*. Further, features which exist only because
+      of a confirmed diagnosis are excluded, including *"iddx_full", "iddx_1",
+      "iddx_2", "iddx_3", "iddx_4", "iddx_5", "mel_mitotic_index", "mel_thick_mm",
+      "tbp_lv_dnn_lesion_confidence"*.
+    * Fill NaN: Some *"age_approx"* values are missing, so these are filled as
+      -1 to help the model distinguish and lean less on this less distinctive
+      information.
+
+Model
+^^^^^^^^^
+
+Training
+^^^^^^^^^^
+Balance dataset....
