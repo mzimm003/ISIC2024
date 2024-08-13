@@ -117,75 +117,75 @@ Features
 
 Version 1
 -----------
-A vision transformer taking features as query tokens for the decoder. Image and
-features are preprocessed, features are fed to a feature reducer, then all
-combined by a transformer to produce a classification.
+    A vision transformer taking features as query tokens for the decoder. Image and
+    features are preprocessed, features are fed to a feature reducer, then all
+    combined by a transformer to produce a classification.
 
 Preprocessing
 ^^^^^^^^^^^^^^^^
-**Images** - All image channels are linearly rescaled from [0,255] to [0,1].
-In the case of the ISIC dataset, the smallest images forced a smaller cropping
-of images than desired, so first images are padded to 200x200 (images larger
-than this are unpadded), then all images are cropped to 125x125. The cropping
-window positioning is selected randomly each time the image is loaded from the
-dataset.
+    **Images** - All image channels are linearly rescaled from [0,255] to [0,1].
+    In the case of the ISIC dataset, the smallest images forced a smaller cropping
+    of images than desired, so first images are padded to 200x200 (images larger
+    than this are unpadded), then all images are cropped to 125x125. The cropping
+    window positioning is selected randomly each time the image is loaded from the
+    dataset.
 
-**Features** - 
-    
-    * Exclusions: Identification features are excluded from training data for being
-      irrelevant to diagnosis. These include *"isic_id", "patient_id", "lesion_id",
-      "attribution", "copyright_license"*. Further, features which exist only because
-      of a confirmed diagnosis are excluded, including *"iddx_full", "iddx_1",
-      "iddx_2", "iddx_3", "iddx_4", "iddx_5", "mel_mitotic_index", "mel_thick_mm",
-      "tbp_lv_dnn_lesion_confidence"*.
-    * Ordinal Encoding: All text classifications which remain are assigned a
-      unique (within each feature) id number in place of the text description.      
-    * Fill NaN: Some *"age_approx"* values are missing, so these are filled as
-      -1 to help the model distinguish and lean less on this less distinctive
-      information.
+    **Features** - 
+        
+        * Exclusions: Identification features are excluded from training data for being
+          irrelevant to diagnosis. These include *"isic_id", "patient_id", "lesion_id",
+          "attribution", "copyright_license"*. Further, features which exist only because
+          of a confirmed diagnosis are excluded, including *"iddx_full", "iddx_1",
+          "iddx_2", "iddx_3", "iddx_4", "iddx_5", "mel_mitotic_index", "mel_thick_mm",
+          "tbp_lv_dnn_lesion_confidence"*.
+        * Ordinal Encoding: All text classifications which remain are assigned a
+          unique (within each feature) id number in place of the text description.      
+        * Fill NaN: Some *"age_approx"* values are missing, so these are filled as
+          -1 to help the model distinguish and lean less on this less distinctive
+          information.
 
 Model
 ^^^^^^^^^
 
-.. _mod_arc:
-.. figure:: figures/model.png
+    .. _mod_arc:
+    .. figure:: figures/model.png
 
-    Basic flow of model architecture.
+        Basic flow of model architecture.
 
-:numref:`mod_arc` shows how the information provided by the ISIC dataset is 
-processed. First, a feature reducer transforms the features which compliment the
-images. This focuses the model on the most meaningful feature information
-allowing for more effective use of the available data. In particular, for this 
-iteration of the model, Principal Component Analysis is used including
-enough dimensions to explain 99.99% of variance in the data.
+    :numref:`mod_arc` shows how the information provided by the ISIC dataset is 
+    processed. First, a feature reducer transforms the features which compliment the
+    images. This focuses the model on the most meaningful feature information
+    allowing for more effective use of the available data. In particular, for this 
+    iteration of the model, Principal Component Analysis is used including
+    enough dimensions to explain 99.99% of variance in the data.
 
-Next, embeddings are created for both the image and the reduced feature set.
-For the features, this is a small fully connected neural network; 2 layers with
-a ReLU activation in between, the initial layer 64 nodes wide, the next twice
-that, with the idea to create two 64 feature queries for the transformer
-decoder. For the image, two embeddings are created. One, a patch embedding to 
-reduce the sequence length input into the transformer encoder, following the
-idea of :cite:t:`dosovitskiy2021imageworth16x16words`. Here, a patch of pixels
-have their channel values concatenated, trading a greater number of features for
-fewer transformer inputs. Further, a linear transformation is applied to allow 
-for varied patch sizes while maintaining a consistent feature dimension between 
-all embeddings. Two, a positional embedding is used to maintain information of
-relative placement between patches. An embedding space of learnable parameters
-is created the size of NxM, where N is the number of patches and M the desired
-dimension of the features (again, 64 in this case).
+    Next, embeddings are created for both the image and the reduced feature set.
+    For the features, this is a small fully connected neural network; 2 layers with
+    a ReLU activation in between, the initial layer 64 nodes wide, the next twice
+    that, with the idea to create two 64 feature queries for the transformer
+    decoder. For the image, two embeddings are created. One, a patch embedding to 
+    reduce the sequence length input into the transformer encoder, following the
+    idea of :cite:t:`dosovitskiy2021imageworth16x16words`. Here, a patch of pixels
+    have their channel values concatenated, trading a greater number of features for
+    fewer transformer inputs. Further, a linear transformation is applied to allow 
+    for varied patch sizes while maintaining a consistent feature dimension between 
+    all embeddings. Two, a positional embedding is used to maintain information of
+    relative placement between patches. An embedding space of learnable parameters
+    is created the size of NxM, where N is the number of patches and M the desired
+    dimension of the features (again, 64 in this case).
 
-The image embeddings, patch and positional, are then summed before taken as
-input to the attention-based transformer encoder. The encoder has 4 layers of
-attention with 8 heads, add and normalization, and 1024 dimension feed forward
-networks (typical transformer encoder layers provided by
-:cite:t:`vaswani2023attentionneed`). The result then used as memory in
-conjunction with the queries created of the feature embeddings as input to the
-decoder. The decoder is of similar dimension to the encoder.
+    The image embeddings, patch and positional, are then summed before taken as
+    input to the attention-based transformer encoder. The encoder has 4 layers of
+    attention with 8 heads, add and normalization, and 1024 dimension feed forward
+    networks (typical transformer encoder layers provided by
+    :cite:t:`vaswani2023attentionneed`). The result then used as memory in
+    conjunction with the queries created of the feature embeddings as input to the
+    decoder. The decoder is of similar dimension to the encoder.
 
-Finally, the two queries create 2 sets of 1024 dimension outputs from the
-transformer, which are flattened and passed to a linear layer to reduce all the
-information down to logits representing whether the lesion is benign (dim 0) or
-malignant (dim 1).
+    Finally, the two queries create 2 sets of 1024 dimension outputs from the
+    transformer, which are flattened and passed to a linear layer to reduce all the
+    information down to logits representing whether the lesion is benign (dim 0) or
+    malignant (dim 1).
 
 Training
 ^^^^^^^^^^

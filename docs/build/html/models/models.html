@@ -209,12 +209,15 @@ otherwise never exist for that feature.</p>
 </section>
 <section id="version-1">
 <h2>Version 1<a class="headerlink" href="#version-1" title="Link to this heading">¶</a></h2>
-<p>A vision transformer taking features as query tokens for the decoder. Image and
+<blockquote>
+<div><p>A vision transformer taking features as query tokens for the decoder. Image and
 features are preprocessed, features are fed to a feature reducer, then all
 combined by a transformer to produce a classification.</p>
+</div></blockquote>
 <section id="id1">
 <h3>Preprocessing<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
-<p><strong>Images</strong> - All image channels are linearly rescaled from [0,255] to [0,1].
+<blockquote>
+<div><p><strong>Images</strong> - All image channels are linearly rescaled from [0,255] to [0,1].
 In the case of the ISIC dataset, the smallest images forced a smaller cropping
 of images than desired, so first images are padded to 200x200 (images larger
 than this are unpadded), then all images are cropped to 125x125. The cropping
@@ -236,10 +239,12 @@ unique (within each feature) id number in place of the text description.</p></li
 information.</p></li>
 </ul>
 </div></blockquote>
+</div></blockquote>
 </section>
 <section id="model">
 <h3>Model<a class="headerlink" href="#model" title="Link to this heading">¶</a></h3>
-<figure class="align-default" id="id4">
+<blockquote>
+<div><figure class="align-default" id="id4">
 <span id="mod-arc"></span><img alt="../_images/model.png" src="../_images/model.png" />
 <figcaption>
 <p><span class="caption-number">Fig. 1 </span><span class="caption-text">Basic flow of model architecture.</span><a class="headerlink" href="#id4" title="Link to this image">¶</a></p>
@@ -276,6 +281,7 @@ decoder. The decoder is of similar dimension to the encoder.</p>
 transformer, which are flattened and passed to a linear layer to reduce all the
 information down to logits representing whether the lesion is benign (dim 0) or
 malignant (dim 1).</p>
+</div></blockquote>
 </section>
 <section id="training">
 <h3>Training<a class="headerlink" href="#training" title="Link to this heading">¶</a></h3>
