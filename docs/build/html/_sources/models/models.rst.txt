@@ -158,7 +158,7 @@ Model
     processed. First, a feature reducer transforms the features which compliment the
     images. This focuses the model on the most meaningful feature information
     allowing for more effective use of the available data. In particular, for this 
-    iteration of the model, Principal Component Analysis is used including
+    iteration of the model, Principal Component Analysis (PCA) is used including
     enough dimensions to explain 99.99% of variance in the data.
 
     Next, embeddings are created for both the image and the reduced feature set.
@@ -191,7 +191,42 @@ Model
 
 Training
 ^^^^^^^^^^
-Balance dataset....
+    To train the model first the feature reducer, PCA, is fit to the available
+    feature data. This process is quick and straightforward.
+
+    The trained feature reducer can then be used to feed the classifier model. 
+    Training the classifier requires a balancing of the classifications. There
+    exist 400,666 benign lesions to 393 malignant, an imbalance which causes
+    little to be learned about malignant lesions. To address this, all available
+    malignant examples are duplicated within the dataset to create a roughly
+    equal number number of positive and negative classification examples.
+
+    With a balanced training set, a K-fold scheme is used to divide the dataset
+    into training and validation subsets. 4 folds were used in training.
+
+    An Adam based optimizer is used for its ability to achieve reasonable
+    results without significant effort put into tuning of hyperparameters.
+
+    To assess loss, cross entropy is used, taking the logits of the transformer
+    compared to the target provided by the data set.
+
+Results
+^^^^^^^^^^
+    Over 4 iterations over the 4 folds, accuracy, precision, and recall end up
+    over 99%. However, once tested in competition, the score achieved is quite
+    poor, an pAUC of 0.021.
 
 Lessons Learned
 ^^^^^^^^^^^^^^^^^^
+    A poor score was expected, as multiple epochs have not yet been introduced
+    to the training regimen. However, given the training results compared to the
+    test, it is clear there is also a significant amount of information leakage.
+    Care must be taken in the balancing of the dataset so that some of the
+    malignant examples are held for the validation set and are in no way a part
+    of the training set. Further, it is important the K-fold process not use the
+    same model for different folds. Attention to these issues should make for a 
+    better generalizing model.
+
+    Weights in the loss function may also help better balance the dataset and 
+    enable better generalization, but will come at a cost of requiring many
+    training epochs.
