@@ -147,6 +147,8 @@ dataset.
 Model
 ^^^^^^^^^
 
+.. figure:: figures/model.png
+
 Training
 ^^^^^^^^^^
 Balance dataset....
