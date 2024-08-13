@@ -147,8 +147,49 @@ dataset.
 Model
 ^^^^^^^^^
 
+.. _mod_arc:
 .. figure:: figures/model.png
+
+    Basic flow of model architecture.
+
+:numref:`mod_arc` shows how the information provided by the ISIC dataset is 
+processed. First, a feature reducer transforms the features which compliment the
+images. This focuses the model on the most meaningful feature information
+allowing for more effective use of the available data. In particular, for this 
+iteration of the model, Principal Component Analysis is used including
+enough dimensions to explain 99.99% of variance in the data.
+
+Next, embeddings are created for both the image and the reduced feature set.
+For the features, this is a small fully connected neural network; 2 layers with
+a ReLU activation in between, the initial layer 64 nodes wide, the next twice
+that, with the idea to create two 64 feature queries for the transformer
+decoder. For the image, two embeddings are created. One, a patch embedding to 
+reduce the sequence length input into the transformer encoder, following the
+idea of :cite:t:`dosovitskiy2021imageworth16x16words`. Here, a patch of pixels
+have their channel values concatenated, trading a greater number of features for
+fewer transformer inputs. Further, a linear transformation is applied to allow 
+for varied patch sizes while maintaining a consistent feature dimension between 
+all embeddings. Two, a positional embedding is used to maintain information of
+relative placement between patches. An embedding space of learnable parameters
+is created the size of NxM, where N is the number of patches and M the desired
+dimension of the features (again, 64 in this case).
+
+The image embeddings, patch and positional, are then summed before taken as
+input to the attention-based transformer encoder. The encoder has 4 layers of
+attention with 8 heads, add and normalization, and 1024 dimension feed forward
+networks (typical transformer encoder layers provided by
+:cite:t:`vaswani2023attentionneed`). The result then used as memory in
+conjunction with the queries created of the feature embeddings as input to the
+decoder. The decoder is of similar dimension to the encoder.
+
+Finally, the two queries create 2 sets of 1024 dimension outputs from the
+transformer, which are flattened and passed to a linear layer to reduce all the
+information down to logits representing whether the lesion is benign (dim 0) or
+malignant (dim 1).
 
 Training
 ^^^^^^^^^^
 Balance dataset....
+
+Lessons Learned
+^^^^^^^^^^^^^^^^^^

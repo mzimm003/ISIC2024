@@ -239,13 +239,50 @@ information.</p></li>
 </section>
 <section id="model">
 <h3>Model<a class="headerlink" href="#model" title="Link to this heading">¶</a></h3>
-<figure class="align-default">
-<img alt="../_images/model.png" src="../_images/model.png" />
+<figure class="align-default" id="id4">
+<span id="mod-arc"></span><img alt="../_images/model.png" src="../_images/model.png" />
+<figcaption>
+<p><span class="caption-number">Fig. 1 </span><span class="caption-text">Basic flow of model architecture.</span><a class="headerlink" href="#id4" title="Link to this image">¶</a></p>
+</figcaption>
 </figure>
+<p><a class="reference internal" href="#mod-arc"><span class="std std-numref">Fig. 1</span></a> shows how the information provided by the ISIC dataset is
+processed. First, a feature reducer transforms the features which compliment the
+images. This focuses the model on the most meaningful feature information
+allowing for more effective use of the available data. In particular, for this
+iteration of the model, Principal Component Analysis is used including
+enough dimensions to explain 99.99% of variance in the data.</p>
+<p>Next, embeddings are created for both the image and the reduced feature set.
+For the features, this is a small fully connected neural network; 2 layers with
+a ReLU activation in between, the initial layer 64 nodes wide, the next twice
+that, with the idea to create two 64 feature queries for the transformer
+decoder. For the image, two embeddings are created. One, a patch embedding to
+reduce the sequence length input into the transformer encoder, following the
+idea of <span id="id2">Dosovitskiy <em>et al.</em> [<a class="reference internal" href="../references.html#id2" title="Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov, Dirk Weissenborn, Xiaohua Zhai, Thomas Unterthiner, Mostafa Dehghani, Matthias Minderer, Georg Heigold, Sylvain Gelly, Jakob Uszkoreit, and Neil Houlsby. An image is worth 16x16 words: transformers for image recognition at scale. 2021. URL: https://arxiv.org/abs/2010.11929, arXiv:2010.11929.">DBK+21</a>]</span>. Here, a patch of pixels
+have their channel values concatenated, trading a greater number of features for
+fewer transformer inputs. Further, a linear transformation is applied to allow
+for varied patch sizes while maintaining a consistent feature dimension between
+all embeddings. Two, a positional embedding is used to maintain information of
+relative placement between patches. An embedding space of learnable parameters
+is created the size of NxM, where N is the number of patches and M the desired
+dimension of the features (again, 64 in this case).</p>
+<p>The image embeddings, patch and positional, are then summed before taken as
+input to the attention-based transformer encoder. The encoder has 4 layers of
+attention with 8 heads, add and normalization, and 1024 dimension feed forward
+networks (typical transformer encoder layers provided by
+<span id="id3">Vaswani <em>et al.</em> [<a class="reference internal" href="../references.html#id4" title="Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Lukasz Kaiser, and Illia Polosukhin. Attention is all you need. 2023. URL: https://arxiv.org/abs/1706.03762, arXiv:1706.03762.">VSP+23</a>]</span>). The result then used as memory in
+conjunction with the queries created of the feature embeddings as input to the
+decoder. The decoder is of similar dimension to the encoder.</p>
+<p>Finally, the two queries create 2 sets of 1024 dimension outputs from the
+transformer, which are flattened and passed to a linear layer to reduce all the
+information down to logits representing whether the lesion is benign (dim 0) or
+malignant (dim 1).</p>
 </section>
 <section id="training">
 <h3>Training<a class="headerlink" href="#training" title="Link to this heading">¶</a></h3>
 <p>Balance dataset….</p>
+</section>
+<section id="lessons-learned">
+<h3>Lessons Learned<a class="headerlink" href="#lessons-learned" title="Link to this heading">¶</a></h3>
 </section>
 </section>
 </section>
