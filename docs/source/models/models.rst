@@ -115,6 +115,8 @@ Features
 
             .. image:: figures/fill_nan.png
 
+.. _V1:
+
 Version 1
 -----------
     A vision transformer taking features as query tokens for the decoder. Image and

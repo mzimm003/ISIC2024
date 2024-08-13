@@ -23,4 +23,11 @@ photos (TBP). :cite:`isic-2024-challenge`
 Latest
 --------
 
-Coming Soon
+Model version 1 - A transformer which makes use of both the images and features
+provided in the ISIC dataset. It is coupled with unsupervised learning to reduce
+the feature set to the most informative, then uses the features to query the 
+image to gain a classification.
+
+Read more :ref:`here<V1>`.
+
+.. image:: models/figures/model.png
