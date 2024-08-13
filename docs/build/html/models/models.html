@@ -262,7 +262,7 @@ a ReLU activation in between, the initial layer 64 nodes wide, the next twice
 that, with the idea to create two 64 feature queries for the transformer
 decoder. For the image, two embeddings are created. One, a patch embedding to
 reduce the sequence length input into the transformer encoder, following the
-idea of <span id="id2">Dosovitskiy <em>et al.</em> [<a class="reference internal" href="../references.html#id2" title="Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov, Dirk Weissenborn, Xiaohua Zhai, Thomas Unterthiner, Mostafa Dehghani, Matthias Minderer, Georg Heigold, Sylvain Gelly, Jakob Uszkoreit, and Neil Houlsby. An image is worth 16x16 words: transformers for image recognition at scale. 2021. URL: https://arxiv.org/abs/2010.11929, arXiv:2010.11929.">DBK+21</a>]</span>. Here, a patch of pixels
+idea of <span id="id2">Vaswani <em>et al.</em> [<a class="reference internal" href="../references.html#id4" title="Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Lukasz Kaiser, and Illia Polosukhin. Attention is all you need. 2023. URL: https://arxiv.org/abs/1706.03762, arXiv:1706.03762.">VSP+23</a>]</span>. Here, a patch of pixels
 have their channel values concatenated, trading a greater number of features for
 fewer transformer inputs. Further, a linear transformation is applied to allow
 for varied patch sizes while maintaining a consistent feature dimension between

@@ -165,7 +165,7 @@ Model
     that, with the idea to create two 64 feature queries for the transformer
     decoder. For the image, two embeddings are created. One, a patch embedding to 
     reduce the sequence length input into the transformer encoder, following the
-    idea of :cite:t:`dosovitskiy2021imageworth16x16words`. Here, a patch of pixels
+    idea of :cite:t:`vaswani2023attentionneed`. Here, a patch of pixels
     have their channel values concatenated, trading a greater number of features for
     fewer transformer inputs. Further, a linear transformation is applied to allow 
     for varied patch sizes while maintaining a consistent feature dimension between 
