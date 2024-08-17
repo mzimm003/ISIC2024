@@ -1,7 +1,9 @@
 import torch
 from torch import nn
 from torch.utils.data import Dataset as DatasetTorch
+
 import numpy as np
+from numpy.typing import ArrayLike
 import pandas as pd
 from PIL import Image
 
@@ -14,8 +16,81 @@ from typing import (
     List
 )
 from pathlib import Path
+import math
 
 from isic.registry import Registry
+
+def train_test_split(
+        *arrays:ArrayLike,
+        train_size:Union[int,float]=None,
+        test_size:Union[int, float]=None,
+        shuffle:bool=True,
+        stratify:Union[List[ArrayLike],None]=None,
+        seed=None,
+        ):
+    assert isinstance(test_size, type(train_size))
+    rng = np.random.default_rng(seed)
+    train_idxs = test_idxs = None
+    for i, array in enumerate(arrays):
+        assert stratify is None or len(stratify[i]) == len(array)
+        idxs = np.arange(len(array))
+
+        if shuffle:
+            idxs = rng.permutation(idxs)
+
+        if isinstance(test_size, float):
+            assert test_size + train_size <= 1.
+            train_size = int(len(array)*train_size)
+            test_size = int(math.ceil(len(array)*test_size))
+        
+        assert (train_size + test_size) <= len(array)
+
+        if stratify is None:
+            train_idxs = idxs[:train_size]
+            test_idxs = idxs[train_size:train_size+test_size]
+        else:
+            train_idxs = []
+            test_idxs = []
+            strat = stratify[i][idxs]
+            class_id, class_count = np.unique(strat, return_counts=True)
+            class_ratios = class_count/len(strat)
+            for c, rat in zip(class_id, class_ratios):
+                mask = strat == c
+                population = idxs[mask]
+                train_sample_size = int(train_size*rat)
+                train_idxs.extend(
+                    population[:train_sample_size])
+                test_sample_size = int(math.ceil(test_size*rat))
+                test_idxs.extend(
+                    population[train_sample_size:train_sample_size+test_sample_size])
+            train_idxs = rng.permutation(train_idxs)
+            test_idxs = rng.permutation(test_idxs)
+            
+        yield train_idxs, test_idxs
+
+class SimpleCustomBatch:
+    def __init__(self, data, feature_reducer):
+        transposed_data = list(zip(*data))
+        transposed_inps = list(zip(*transposed_data[0]))
+        self.img = torch.stack(transposed_inps[0], 0)
+        self.fet = torch.stack(transposed_inps[1], 0)
+        self.fet = torch.tensor(feature_reducer(X0=self.fet.numpy().astype(np.float32)))
+        self.tgt = None
+        if isinstance(transposed_data[1][0], str):
+            self.tgt = transposed_data[1]
+        else:
+            self.tgt = torch.stack(transposed_data[1], 0).long()
+
+    # custom memory pinning method on custom type
+    def pin_memory(self):
+        self.img = self.img.pin_memory()
+        self.fet = self.fet.pin_memory()
+        if not isinstance(self.tgt, tuple):
+            self.tgt = self.tgt.pin_memory()
+        return self
+
+def collate_wrapper(batch, feature_reducer):
+    return SimpleCustomBatch(batch, feature_reducer)
 
 class Dataset(DatasetTorch):
     """
@@ -174,7 +249,6 @@ class SkinLesions(Dataset):
             idx)
 
     def __len__(self):
-        # return 128
         return len(self.annotations)
 
     def __getitem__(self, idx):

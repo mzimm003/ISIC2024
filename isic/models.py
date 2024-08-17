@@ -42,9 +42,9 @@ class Classifier(nn.Module):
         self.activation = ActivationReg.initialize(
             activation, activation_kwargs if activation_kwargs else {})
         self.feature_embedding = nn.Sequential(
-            nn.LazyLinear(embedding_dim),
+            nn.Linear(1, embedding_dim),
             self.activation,
-            nn.Linear(embedding_dim, 2*embedding_dim))
+            nn.Linear(embedding_dim, embedding_dim))
         
         self.img_height = img_height
         self.img_width = img_width
@@ -76,15 +76,19 @@ class Classifier(nn.Module):
             batch_first = True,
             norm_first = norm_first,
         )
-        self.trans_out_flatten = nn.Flatten(-2)
-        self.is_malignant = nn.LazyLinear(2)
+        self.is_malignant = nn.Sequential(
+            nn.Linear(embedding_dim, 2),
+            self.activation,
+            nn.Flatten(-2),
+            nn.LazyLinear(2)
+        )
     
     def forward(self, img:torch.Tensor, fet:torch.Tensor):
         param_ref = next(self.transformer.parameters())
         fet = fet.to(dtype=param_ref.dtype, device=param_ref.device)
         img = img.to(dtype=param_ref.dtype, device=param_ref.device)
 
-        fet = self.feature_embedding(fet).reshape(fet.shape[0], 2, -1)
+        fet = self.feature_embedding(fet[...,None])
 
         width = img.shape[-3]
         height = img.shape[-2]
@@ -100,7 +104,6 @@ class Classifier(nn.Module):
         img = self.reshape_img(img)
         im_emb = self.img_patch_embedding(img)
         trans_logits = self.transformer(im_emb + pos_emb, fet)
-        trans_logits = self.trans_out_flatten(trans_logits)
         logits = self.is_malignant(trans_logits)
         return logits
 

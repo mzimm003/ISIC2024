@@ -3,7 +3,8 @@ from sklearn.discriminant_analysis import (
     QuadraticDiscriminantAnalysis
 )
 from sklearn.decomposition import (
-    PCA
+    PCA,
+    FastICA
 )
 
 import onnxruntime
@@ -45,6 +46,7 @@ class Registry(Enum):
 class FeatureReducersReg(Registry):
     LDA = LinearDiscriminantAnalysis # Reduces to fewer than number of classifications, only suitable for problems of multiple classes
     PCA = PCA
+    ICA = FastICA
 
 class ActivationReg(Registry):
     relu = nn.ReLU
