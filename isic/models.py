@@ -42,7 +42,7 @@ class Classifier(nn.Module):
         self.activation = ActivationReg.initialize(
             activation, activation_kwargs if activation_kwargs else {})
         self.feature_embedding = nn.Sequential(
-            nn.Linear(1, embedding_dim),
+            nn.LazyLinear(embedding_dim),
             self.activation,
             nn.Linear(embedding_dim, embedding_dim))
         
@@ -88,7 +88,7 @@ class Classifier(nn.Module):
         fet = fet.to(dtype=param_ref.dtype, device=param_ref.device)
         img = img.to(dtype=param_ref.dtype, device=param_ref.device)
 
-        fet = self.feature_embedding(fet[...,None])
+        fet = self.feature_embedding(fet[:,None]*torch.eye(fet.shape[-1]))
 
         width = img.shape[-3]
         height = img.shape[-2]
