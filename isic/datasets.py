@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from torch.utils.data import Dataset as DatasetTorch
+from torch.utils.data import Subset as SubsetTorch
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -92,6 +93,11 @@ class SimpleCustomBatch:
 def collate_wrapper(batch, feature_reducer):
     return SimpleCustomBatch(batch, feature_reducer)
 
+class Subset(SubsetTorch):
+    dataset:'Dataset'
+    def getLabels(self):
+        return self.dataset.labels[self.indices]
+
 class Dataset(DatasetTorch):
     """
     A basis for database creation and dataset serving.
@@ -113,7 +119,7 @@ class Dataset(DatasetTorch):
     See https://github.com/pytorch/pytorch/issues/13246#issuecomment-905703662 
     for a summary of the issue.
     """
-
+    labels:Union[None, torch.Tensor]
     AUTONAME = "complete_generated_dataset"
     LBL_FILE_COUNT = "total_label_files"
     LBL_COUNT = "total_labels"
@@ -200,7 +206,6 @@ class SkinLesions(Dataset):
             annotation_transform:nn.Module = None,
             annotations_only:bool = False,
             label_desc:str = None,
-            balance_augment:bool = False,
             ret_id_as_label:bool = False):
         metadata = pd.read_csv(annotations_file, low_memory=False)
         
@@ -229,18 +234,6 @@ class SkinLesions(Dataset):
         else:
             self.annotations = torch.tensor(metadata.values)
             self.labels = None
-
-        if balance_augment:
-            unq_labels, label_counts = self.labels.unique(return_counts=True)
-            repeat_for_balance = label_counts.max()//label_counts
-            new_labels = []
-            new_annotations = []
-            for lbl, rpt in zip(unq_labels, repeat_for_balance):
-                mask = self.labels == lbl
-                new_labels.append(self.labels[mask].repeat(rpt))
-                new_annotations.append(self.annotations[mask].repeat(rpt, 1))
-            self.labels = torch.cat(new_labels)
-            self.annotations = torch.cat(new_annotations)
 
     def __get_img_listing(self, idx):
         return Dataset.mem_safe_val_and_offset_to_string(

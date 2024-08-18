@@ -5,7 +5,7 @@ import torch
 import torch.utils
 from torch import nn
 import torch.utils.data
-from torch.utils.data import Dataset, DataLoader, Subset
+from torch.utils.data import Dataset, DataLoader
 from torch.optim import Optimizer
 
 from sklearn.model_selection import StratifiedKFold
@@ -45,7 +45,12 @@ from isic.registry import (
     OptimizerReg,
     CriterionReg)
 from isic.models import ModelReg
-from isic.datasets import DatasetReg, train_test_split, collate_wrapper
+from isic.datasets import (
+    DatasetReg,
+    Subset,
+    train_test_split,
+    collate_wrapper
+)
 
 import ray
 from ray import tune
@@ -227,6 +232,7 @@ class TrainingManager:
         data,
         dl_kwargs:dict,
         num_splits:int,
+        balance_training_set:bool,
         shuffle:bool,
         model:Union[str, ModelReg] = None,
         model_kwargs:Dict[str, Any] = None,
@@ -236,6 +242,7 @@ class TrainingManager:
         criterion_kwargs:Dict[str, Any] = None,
         ):
         self.num_splits = num_splits
+        self.balance_training_set = balance_training_set
         self.shuffle = shuffle
         self.data = data
         self.dl_kwargs = dl_kwargs
@@ -293,14 +300,25 @@ class TrainingManager:
                 ).split(self.data, self.data.labels)
         for i, (train_fold, val_fold) in enumerate(split_idxs):
             print("Start dataloaders.")
+            train_dl_kwargs = self.dl_kwargs.copy()
+            train_data = Subset(self.data, train_fold)
+            val_data = Subset(self.data, val_fold)
+            if self.balance_training_set:
+                unq_lbls = train_data.getLabels().unique()
+                lbl_masks = train_data.getLabels()==unq_lbls[:,None]
+                not_lbl_counts = (train_data.getLabels()!=unq_lbls[:,None]).sum(-1)[:,None]
+                weights = (lbl_masks*not_lbl_counts).sum(0)
+                train_dl_kwargs["sampler"] = (
+                    torch.utils.data.WeightedRandomSampler(weights, len(train_data)))
+                train_dl_kwargs["shuffle"] = False
             self.datasets['train'][i] = DataLoader(
-                Subset(self.data, train_fold),
-                ** self.dl_kwargs
+                train_data,
+                **train_dl_kwargs
                 )
             print("Train dataloader done.")
             self.datasets['validation'][i] = DataLoader(
-                Subset(self.data, val_fold),
-                ** self.dl_kwargs
+                val_data,
+                **self.dl_kwargs
                 )
             print("Val dataloader done.")
         
@@ -326,6 +344,7 @@ class ClassifierTraining(TrainingScript):
             criterion:Union[CriterionReg, Type[torch.nn.modules.loss._Loss]] = None,
             criterion_kwargs:Dict[str, Any] = None,
             save_path:Union[str, Path] = None,
+            balance_training_set = False,
             k_fold_splits:int = 4,
             batch_size:int = 64,
             shuffle:bool = True,
@@ -343,6 +362,8 @@ class ClassifierTraining(TrainingScript):
             criterion: The criterion class to be used.
             criterion_kwargs : Configuration for the criterion.
             save_path: Specify a path to which classifier should be saved.
+            balance_training_set: Create a sampling scheme so that each class
+              is trained on equally often.
             k_fold_splits: Number of folds used for dataset in training.
             batch_size: Number of data points included in training batches.
             shuffle: Whether to shuffle data points.
@@ -352,6 +373,7 @@ class ClassifierTraining(TrainingScript):
         self.data = dataset
         self.ds_kwargs = dataset_kwargs if dataset_kwargs else {}
         self.feature_reducer_path = feature_reducer_path
+        self.balance_training_set = balance_training_set
         self.k_fold_splits = k_fold_splits
         self.training_manager = None
         self.dl_kwargs = dict(
@@ -390,6 +412,7 @@ class ClassifierTraining(TrainingScript):
             data=self.data,
             dl_kwargs=self.dl_kwargs,
             num_splits=self.k_fold_splits,
+            balance_training_set=self.balance_training_set,
             shuffle=self.dl_kwargs["shuffle"],
             model=self.classifier,
             model_kwargs=self.classifier_kwargs,
@@ -644,7 +667,7 @@ class Main(Script):
         script.run()
 
     def trainClassifierRay(self):
-        num_trials = 4
+        num_trials = 2
         num_cpus = 1 if self.debug else os.cpu_count()
         num_gpus = 0 if self.debug else torch.cuda.device_count()
         cpu_per_trial = num_cpus//num_trials
@@ -654,8 +677,6 @@ class Main(Script):
         img_dir=Path("train-image").resolve()
         feature_reducer_paths=[
             "./models/feature_reduction/PCA(n_components=0.9999)/model.onnx",
-            "./models/feature_reduction/PCA(n_components=0.99)/model.onnx",
-            "./models/feature_reduction/PCA(n_components=0.8)/model.onnx",
             None
             ]
         save_path=Path("./models/classifier").resolve()
@@ -714,11 +735,10 @@ class Main(Script):
                     lr=tune.grid_search([0.00005])
                 ),
                 criterion=CriterionReg.cross_entropy,
-                criterion_kwargs=dict(
-                    weight=torch.tensor([393, 400666])/401059),
                 save_path=save_path,
+                balance_training_set=True,
                 k_fold_splits=1,
-                batch_size=128,
+                batch_size=256,
                 shuffle=True,
                 num_workers=cpu_per_trial-1,
             )
@@ -758,7 +778,6 @@ class Main(Script):
                     fill_nan_values=[-1, 0],
                     ),
                 label_desc='target',
-                balance_augment=True,
             ),
             feature_reducer_path="./models/feature_reduction/PCA(n_components=0.9999)/model.onnx",
             classifier=ModelReg.Classifier,
@@ -767,8 +786,9 @@ class Main(Script):
             ),
             optimizer=OptimizerReg.adam,
             criterion=CriterionReg.cross_entropy,
-            batch_size=2,
+            batch_size=32,
             save_path="./models/classifier",
+            balance_training_set=True,
             num_workers=os.cpu_count()-1 if not self.debug else 0,
             )
         script.setup()

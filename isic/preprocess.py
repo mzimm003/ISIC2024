@@ -4,6 +4,7 @@ import pandas as pd
 from sklearn.preprocessing import (
     OrdinalEncoder
 )
+from isic.datasets import Dataset
 from typing import (
     List,
     Union,
@@ -91,6 +92,87 @@ class Crop(nn.Module):
         start_x = self.rng.integers(w-self.width)
         start_y = self.rng.integers(h-self.height)
         return x[start_x:start_x+self.width, start_y:start_y+self.height, :]
+
+class RandomFlip(nn.Module):
+    def __init__(
+            self,
+            seed=None,
+            *args,
+            **kwargs) -> None:
+        """
+        Take away pixels from images to provide a consistent size.
+
+        Args:
+            width: The desired total pixel width.
+            height: The desired total pixel height.
+            seed: Seed for rng to create reproducible results if desired.
+        """
+        super().__init__(*args, **kwargs)
+        self.rng = np.random.default_rng(seed=seed)
+    
+    def forward(self, x):
+        if self.rng.integers(2):
+            x = np.flip(x, -2)
+        if self.rng.integers(2):
+            x = np.flip(x, -3)
+        return x
+
+class RandomBrightness(nn.Module):
+    def __init__(
+            self,
+            max_inc=50,
+            max_dec=50,
+            seed=None,
+            *args,
+            **kwargs) -> None:
+        """
+        Add to image colors for greater or lesser brightness, randomly.
+
+        Args:
+            max_inc: The highest brightness addition to apply.
+            max_dec: The lowest brightness addition to apply.
+            seed: Seed for rng to create reproducible results if desired.
+        """
+        super().__init__(*args, **kwargs)
+        self.rng = np.random.default_rng(seed=seed)
+        self.max_inc = max_inc
+        self.max_dec = max_dec
+    
+    def forward(self, x):
+        change = self.rng.integers(self.max_dec, self.max_inc, endpoint=True)
+        x = x+change
+        x[x<0] = 0
+        x[x>255] = 255
+        return x
+
+class RandomContrast(nn.Module):
+    def __init__(
+            self,
+            max_inc=2,
+            max_dec=0.5,
+            seed=None,
+            *args,
+            **kwargs) -> None:
+        """
+        Scale image colors for greater or lesser contrast, randomly.
+
+        Args:
+            max_inc: The highest contrastive scalar to apply.
+            max_dec: The lowest contrastive scalar to apply.
+            seed: Seed for rng to create reproducible results if desired.
+        """
+        super().__init__(*args, **kwargs)
+        self.rng = np.random.default_rng(seed=seed)
+        self.max_inc = max_inc
+        self.max_dec = max_dec
+    
+    def forward(self, x):
+        change = self.rng.random()
+        change = (self.max_inc-self.max_dec)*change+self.max_dec
+        x = x*change
+        x[x<0] = 0
+        x[x>255] = 255
+        return x
 
 class Select(nn.Module):
     def __init__(
@@ -186,7 +268,7 @@ class FillNaN(nn.Module):
             mask = x.loc[:,selection].isnull()
             x.loc[mask,selection] = self.fill_value[i]
         return x
-
+    
 class PreProcess(nn.Module):
     def __init__(
             self,
@@ -202,7 +284,10 @@ class PreProcess(nn.Module):
 class PPPicture(PreProcess):
     def __init__(
         self,
+        random_brightness:bool = True,
+        random_contrast:bool = True,
         rescale_images:bool = True,
+        random_flips:bool = True,
         omit:bool = False,
         pad_mode:str = None,
         pad_width=200,
@@ -215,8 +300,11 @@ class PPPicture(PreProcess):
         *args,
         **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        self.rand_brit = RandomBrightness(seed=seed) if random_brightness else None
+        self.rand_cont = RandomContrast(seed=seed) if random_contrast else None
         self.rescale = RescaleColor() if rescale_images else None
         self.select = Select(do_not_include=omit) if omit else None
+        self.rand_flip = RandomFlip(seed=seed) if random_flips else None
         self.pad = Pad(
             width=pad_width,
             height=pad_height,
