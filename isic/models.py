@@ -88,7 +88,7 @@ class Classifier(nn.Module):
         fet = fet.to(dtype=param_ref.dtype, device=param_ref.device)
         img = img.to(dtype=param_ref.dtype, device=param_ref.device)
 
-        fet = self.feature_embedding(fet[:,None]*torch.eye(fet.shape[-1]))
+        fet = self.feature_embedding(fet[:,None]*torch.eye(fet.shape[-1], device=param_ref.device))
 
         width = img.shape[-3]
         height = img.shape[-2]
