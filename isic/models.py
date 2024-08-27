@@ -88,10 +88,10 @@ class Classifier(nn.Module):
         fet = fet.to(dtype=param_ref.dtype, device=param_ref.device)
         img = img.to(dtype=param_ref.dtype, device=param_ref.device)
 
-        fet = self.feature_embedding(fet[:,None]*torch.eye(fet.shape[-1], device=param_ref.device))
+        fet = self.feature_embedding(fet[:,None]*torch.eye(fet.size(-1), device=param_ref.device))
 
-        width = img.shape[-3]
-        height = img.shape[-2]
+        width = img.size(-3)
+        height = img.size(-2)
         x_emb = self.positional_embedding_x(
             torch.arange(width//self.patch_size, device=param_ref.device))
         y_emb = self.positional_embedding_y(

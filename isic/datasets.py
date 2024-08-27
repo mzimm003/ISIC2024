@@ -14,7 +14,8 @@ import io
 from typing import (
     Union,
     Tuple,
-    List
+    List,
+    Callable
 )
 from pathlib import Path
 import math
@@ -69,13 +70,98 @@ def train_test_split(
             
         yield train_idxs, test_idxs
 
+class DataHandlerGenerator:
+    pipeline:list[tuple[str, Callable]]
+    def __init__(
+            self,
+            **inputs):
+        self.pipeline = []
+        for key, inp in inputs.items():
+            setattr(self, key, inp)
+        for i in range(len(self.pipeline)):
+            inps = self.pipeline[i][0]
+            mod = self.pipeline[i][1]
+            if not isinstance(self.pipeline[i][0],list):
+                assert isinstance(self.pipeline[i][0],str)
+                inps = [self.pipeline[i][0]]
+            if isinstance(self.pipeline[i][0],str) or isinstance(self.pipeline[i][0],Path):
+                mod = Registry.load_model(mod)
+            self.pipeline[i] = (inps, mod)
+    def get_data_handler(self, data):
+        inputs = {
+            inp:getattr(data, val)
+            for inp, val in self.__dict__.items() if inp != "pipeline"
+        }
+        return DataHandler(
+            pipeline=self.pipeline,
+            **inputs)
+
+class DataHandler:
+    loss:torch.Tensor
+    output:torch.Tensor
+    output_label:torch.Tensor
+    target:torch.Tensor
+    pipeline:list[tuple[str, Callable]]
+    def __init__(
+            self,
+            target=None,
+            pipeline=None,
+            **inputs,
+            ):
+        self.pipeline = pipeline
+        self.target = target
+        self.inputs = inputs
+
+    def process_data(self, model:nn.Module, dtype=None, trunc_batch=None):
+        param_ref = next(iter(model.parameters()))
+        for key, value in self.__dict__.items():
+            if isinstance(value, torch.Tensor):
+                if dtype:
+                    value = value.to(dtype=dtype)
+                if trunc_batch:
+                    value = value[:trunc_batch,...]
+                setattr(self, key, value.to(device=param_ref.device))
+            elif key == 'inputs' and isinstance(value, dict):
+                for k, v in value.items():
+                    if isinstance(v, torch.Tensor):
+                        if dtype:
+                            v = v.to(dtype=dtype)
+                        if trunc_batch:
+                            v = v[:trunc_batch,...]
+                        self.inputs[k] = v.to(device=param_ref.device)
+        self.run_pipeline()
+    
+    def get_inputs(self):
+        return self.inputs
+
+    def set_loss(self, loss):
+        self.loss = loss
+
+    def set_model_output(self, output):
+        self.output = output
+        self.output_label = self.output.max(-1).indices
+
+    def run_pipeline(self):
+        # Pipeline exists to modify input data prior to providing to training
+        # model, e.g. piping through a feature reduction model. To that end, 
+        # it is assumed inputs of the pipeline should be replaced by the
+        # outputs.
+        for inp, mod in self.pipeline:
+            inp = {k:self.inputs[k] for k in inp}
+            if len(inp) > 1:
+                raise NotImplementedError
+            out, = mod(**inp)
+            self.inputs[list(inp.keys())[0]] = out
+
 class SimpleCustomBatch:
-    def __init__(self, data, feature_reducer):
+    IMG="img"
+    FET="fet"
+    TGT="tgt"
+    def __init__(self, data):
         transposed_data = list(zip(*data))
         transposed_inps = list(zip(*transposed_data[0]))
         self.img = torch.stack(transposed_inps[0], 0)
         self.fet = torch.stack(transposed_inps[1], 0)
-        self.fet = torch.tensor(feature_reducer(X0=self.fet.numpy().astype(np.float32)))
         self.tgt = None
         if isinstance(transposed_data[1][0], str):
             self.tgt = transposed_data[1]
@@ -90,8 +176,8 @@ class SimpleCustomBatch:
             self.tgt = self.tgt.pin_memory()
         return self
 
-def collate_wrapper(batch, feature_reducer):
-    return SimpleCustomBatch(batch, feature_reducer)
+def collate_wrapper(batch):
+    return SimpleCustomBatch(batch)
 
 class Subset(SubsetTorch):
     dataset:'Dataset'
@@ -229,10 +315,14 @@ class SkinLesions(Dataset):
         self.annotations = None
         self.labels = None
         if self.label_desc:
-            self.annotations = torch.tensor(metadata.drop(self.label_desc, axis=1).values)
-            self.labels = torch.tensor(metadata[self.label_desc])
+            self.annotations = torch.tensor(
+                metadata.drop(self.label_desc, axis=1).values,
+                dtype=torch.float32)
+            self.labels = torch.tensor(
+                metadata[self.label_desc],
+                dtype=torch.float32)
         else:
-            self.annotations = torch.tensor(metadata.values)
+            self.annotations = torch.tensor(metadata.values, dtype=torch.float32)
             self.labels = None
 
     def __get_img_listing(self, idx):
@@ -246,7 +336,7 @@ class SkinLesions(Dataset):
 
     def __getitem__(self, idx):
         data = None
-        label = torch.tensor(-1)
+        label = torch.tensor(-1, dtype=torch.float32)
         annotations = self.annotations[idx]
         if self.label_desc:
             label = self.labels[idx]
@@ -263,11 +353,39 @@ class SkinLesions(Dataset):
             if self.img_transform:
                 image = self.img_transform(image)
             data = (
-                torch.tensor(image),
+                torch.tensor(image, dtype=torch.float32),
                 annotations
                 )
 
         return data, label
 
+class SkinLesionsSmall(SkinLesions):
+    def __init__(
+            self,
+            annotations_file: str | Path,
+            img_file: str | Path = None,
+            img_dir: str | Path = None,
+            img_transform: nn.Module = None,
+            annotation_transform: nn.Module = None,
+            annotations_only: bool = False,
+            label_desc: str = None,
+            ret_id_as_label: bool = False,
+            size:int = 2048):
+        super().__init__(annotations_file, img_file, img_dir, img_transform, annotation_transform, annotations_only, label_desc, ret_id_as_label)
+        rng = np.random.default_rng()
+        if not self.labels is None:
+            unq_lbls = self.labels.unique()
+            lbl_masks = self.labels==unq_lbls[:,None]
+            not_lbl_counts = (self.labels!=unq_lbls[:,None]).float().sum(-1)[:,None]
+            weights = (lbl_masks*not_lbl_counts).sum(0).double()
+            weights = weights/weights.sum()
+            mask = rng.choice(len(self.labels), size, replace=False, p=weights)
+            self.labels = self.labels[mask]
+            self.annotations = self.annotations[mask]
+        else:
+            mask = rng.choice(len(self.annotations), size, replace=False)
+            self.annotations = self.annotations[mask]
+
 class DatasetReg(Registry):
     SkinLesions = SkinLesions
+    SkinLesionsSmall = SkinLesionsSmall
