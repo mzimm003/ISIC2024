@@ -101,6 +101,7 @@ class DataHandler:
     output:torch.Tensor
     output_label:torch.Tensor
     target:torch.Tensor
+    last_lr:float
     pipeline:list[tuple[str, Callable]]
     def __init__(
             self,
@@ -133,6 +134,12 @@ class DataHandler:
     
     def get_inputs(self):
         return self.inputs
+    
+    def set_last_lr(self, last_lr):
+        self.last_lr = last_lr
+
+    def get_last_lr(self):
+        return self.last_lr
 
     def set_loss(self, loss):
         self.loss = loss

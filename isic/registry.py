@@ -16,7 +16,10 @@ import torch
 from torch import nn
 from torch.optim import (
     SGD,
-    Adam
+    Adam,
+)
+from torch.optim.lr_scheduler import (
+    CyclicLR
 )
 
 from typing import (
@@ -112,9 +115,37 @@ class ActivationReg(Registry):
 class OptimizerReg(Registry):
     SGD = SGD
     adam = Adam
+
     @classmethod
     def initialize(cls, obj, parameters, kwargs):
         kwargs['params'] = parameters
+        return super().initialize(obj, kwargs)
+
+# def BatchBasedLRScheduler(cls):
+#     class BatchBasedLRScheduler(cls):
+#         def __init__(self, *args, **kwargs):
+#             super().__init__(*args, **kwargs)
+#     return BatchBasedLRScheduler
+
+# def EpochBasedLRScheduler(cls):
+#     class EpochBasedLRScheduler(cls):
+#         def __init__(self, *args, **kwargs):
+#             super().__init__(*args, **kwargs)
+#     return EpochBasedLRScheduler
+
+# class BaseScheduler:
+#     pass
+
+class LRSchedulerReg(Registry):
+    #TODO, this can be better somehow, meant to serve Trainer in Main.
+    #  See "step_lr_scheduler"
+    CyclicLR = CyclicLR
+    # BatchBasedLRScheduler = BatchBasedLRScheduler(BaseScheduler)
+    # EpochBasedLRScheduler = EpochBasedLRScheduler(BaseScheduler)
+
+    @classmethod
+    def initialize(cls, obj, optimizer, kwargs):
+        kwargs['optimizer'] = optimizer
         return super().initialize(obj, kwargs)
 
 class CriterionReg(Registry):

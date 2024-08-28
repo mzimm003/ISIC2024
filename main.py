@@ -7,6 +7,7 @@ from torch import nn
 import torch.utils.data
 from torch.utils.data import Dataset, DataLoader
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import LRScheduler
 
 from sklearn.model_selection import StratifiedKFold
 from skl2onnx import convert_sklearn
@@ -45,6 +46,7 @@ from isic.registry import (
     FeatureReducersReg,
     ActivationReg,
     OptimizerReg,
+    LRSchedulerReg,
     CriterionReg,
     IterOptional
     )
@@ -58,7 +60,7 @@ from isic.datasets import (
     SimpleCustomBatch,
     collate_wrapper
 )
-from isic.callbacks import Callback, ClassifierTrainingCallback
+from isic.callbacks import Callback, CallbackReg
 
 import ray
 from ray import tune
@@ -232,6 +234,8 @@ class TrainingManager:
         models_kwargs:IterOptional[Dict[str, Any]] = None,
         optimizers:IterOptional[Union[OptimizerReg, Type[Optimizer]]]= None,
         optimizers_kwargs:IterOptional[Dict[str, Any]] = None,
+        lr_schedulers:IterOptional[Union[LRSchedulerReg, Type[LRScheduler]]]= None,
+        lr_schedulers_kwargs:IterOptional[Dict[str, Any]] = None,
         criterion:Union[CriterionReg, Type[torch.nn.modules.loss._Loss]]= None,
         criterion_kwargs:Dict[str, Any] = None,
         ):
@@ -257,6 +261,12 @@ class TrainingManager:
         self.optimizers_kwargs = optimizers_kwargs if optimizers_kwargs else [{}]*len(self.models)
         if not isinstance(self.optimizers_kwargs, list):
             self.optimizers_kwargs = [self.optimizers_kwargs]*len(self.models)
+        self.lr_schedulers = lr_schedulers
+        if not isinstance(self.lr_schedulers, list):
+            self.lr_schedulers = [self.lr_schedulers]*len(self.models)
+        self.lr_schedulers_kwargs = lr_schedulers_kwargs if lr_schedulers_kwargs else [{}]*len(self.models)
+        if not isinstance(self.lr_schedulers_kwargs, list):
+            self.lr_schedulers_kwargs = [self.lr_schedulers_kwargs]*len(self.models)
         self.criterion = CriterionReg.initialize(
             criterion, criterion_kwargs)
         self.criterion.to(device=self.device)
@@ -326,12 +336,18 @@ class TrainingManager:
     def create_trainers(self):
         for j, m in enumerate(self.models):
             model = ModelReg.initialize(m, self.models_kwargs[j]).to(device=self.device)
+            opt = OptimizerReg.initialize(
+                    self.optimizers[j], model.parameters(), self.optimizers_kwargs[j])
+            lr_sch = self.lr_schedulers[j]
+            if lr_sch:
+                lr_sch = LRSchedulerReg.initialize(
+                    lr_sch, opt, self.lr_schedulers_kwargs[j])
             yield self.trainer_class(
-                model,
-                OptimizerReg.initialize(
-                    self.optimizers[j], model.parameters(), self.optimizers_kwargs[j]),
-                self.criterion,
-                self.pipelines[j])
+                model=model,
+                optimizer=opt,
+                lr_scheduler=lr_sch,
+                criterion=self.criterion,
+                pipeline=self.pipelines[j])
 
     def get_models_for_onnx_save(self, dtype=None)-> tuple:
         for i, split in self.splits.items():
@@ -340,6 +356,11 @@ class TrainingManager:
                 d_h = trainer.generate_data_handler(data_sample)
                 d_h.process_data(trainer.model, dtype=dtype, trunc_batch=8)
                 yield trainer.model.eval().to(dtype=dtype), d_h.get_inputs()
+    
+    def step_lr_schedulers(self):
+        for train_elements in self:
+            for trainer in train_elements.trainers:
+                trainer.step_lr_scheduler(endOfEpoch=True)
 
 class Trainer:
     def __init__(
@@ -347,10 +368,12 @@ class Trainer:
             model:nn.Module,
             optimizer:Optimizer,
             criterion:torch.nn.modules.loss._Loss,
+            lr_scheduler:LRScheduler=None,
             pipeline=None):
         self.model = model
         param_ref = next(iter(model.parameters()))
         self.optimizer = optimizer
+        self.lr_scheduler = lr_scheduler
         self.criterion = criterion
         self.device = param_ref.device
         self.dh_gen:DataHandlerGenerator = self.map_data_handler(pipeline)
@@ -361,6 +384,15 @@ class Trainer:
     def generate_data_handler(self, data):
         return self.dh_gen.get_data_handler(data)
     
+    def step_lr_scheduler(self, endOfEpoch=False):
+        if self.lr_scheduler:
+            if ((endOfEpoch and
+                not self.lr_scheduler.__class__.__name__ == LRSchedulerReg.CyclicLR.name) or
+                (not endOfEpoch and
+                self.lr_scheduler.__class__.__name__ == LRSchedulerReg.CyclicLR.name)
+                ):
+                self.lr_scheduler.step()
+
     def infer_itr(
             self,
             data
@@ -379,6 +411,8 @@ class Trainer:
         if self.model.training:
             data_handler.loss.backward()
             self.optimizer.step()
+            self.step_lr_scheduler()
+        data_handler.set_last_lr(self.lr_scheduler.get_last_lr()[0])
         return data_handler
 
 class ISICTrainer(Trainer):    
@@ -400,6 +434,8 @@ class MultiClassifierTraining(TrainingScript):
             classifiers_kwargs:IterOptional[Dict[str, Any]] = None,
             optimizers:IterOptional[OptimizerReg | Type[Optimizer]]= None,
             optimizers_kwargs:IterOptional[Dict[str, Any]] = None,
+            lr_schedulers:IterOptional[Union[LRSchedulerReg, Type[LRScheduler]]]= None,
+            lr_schedulers_kwargs:IterOptional[Dict[str, Any]] = None,
             criterion:Union[CriterionReg, Type[torch.nn.modules.loss._Loss]] = None,
             criterion_kwargs:Dict[str, Any] = None,
             save_path:Union[str, Path] = None,
@@ -408,7 +444,8 @@ class MultiClassifierTraining(TrainingScript):
             batch_size:int = 64,
             shuffle:bool = True,
             num_workers:int = 0,
-            callback:Callback = None,
+            callback:type[Callback] = None,
+            callback_kwargs:Dict[str, Any] = None,
             **kwargs) -> None:
         """
         Args:
@@ -419,6 +456,8 @@ class MultiClassifierTraining(TrainingScript):
             classifiers_kwargs: Configuration for the classifier.
             optimizers: The optimizer class to be used.
             optimizers_kwargs : Configuration for the optimizer.
+            lr_schedulers: The learning rate scheduler class to be used, if any.
+            lr_schedulers_kwargs : Configuration for the learning rate scheduler.
             criterion: The criterion class to be used.
             criterion_kwargs : Configuration for the criterion.
             save_path: Specify a path to which classifier should be saved.
@@ -429,6 +468,7 @@ class MultiClassifierTraining(TrainingScript):
             shuffle: Whether to shuffle data points.
             num_workers: For multiprocessing.
             callback: Class of processes interjected into training run.
+            callback_kwargs: Configuration for callback.
         """
         super().__init__(**kwargs)
         self.data = dataset
@@ -458,12 +498,21 @@ class MultiClassifierTraining(TrainingScript):
         self.optimizers_kwargs = optimizers_kwargs if optimizers_kwargs else [{}]*len(self.classifiers)
         if not isinstance(self.optimizers_kwargs, list):
             self.optimizers_kwargs = [self.optimizers_kwargs]*len(self.classifiers)
+        self.lr_schedulers = lr_schedulers
+        if not isinstance(self.optimizers, list):
+            self.lr_schedulers = [self.lr_schedulers]*len(self.classifiers)
+        self.lr_schedulers_kwargs = lr_schedulers_kwargs if lr_schedulers_kwargs else [{}]*len(self.classifiers)
+        if not isinstance(self.lr_schedulers_kwargs, list):
+            self.lr_schedulers_kwargs = [self.lr_schedulers_kwargs]*len(self.classifiers)
         self.criterion = criterion
         self.criterion_kwargs = criterion_kwargs if criterion_kwargs else {}
         self.save_path = save_path
-        self.callback = callback if callback else ClassifierTrainingCallback()
+        self.callback = callback if callback else CallbackReg.ClassifierTrainingCallback
+        self.callback_kwargs = callback_kwargs if callback_kwargs else {}
 
     def setup(self):
+        self.callback = CallbackReg.initialize(
+            self.callback, self.callback_kwargs)
         self.data = DatasetReg.initialize(
             self.data, self.ds_kwargs)
         print("Dataset initialized.")
@@ -479,6 +528,8 @@ class MultiClassifierTraining(TrainingScript):
             models_kwargs=self.classifiers_kwargs,
             optimizers=self.optimizers,
             optimizers_kwargs=self.optimizers_kwargs,
+            lr_schedulers=self.lr_schedulers,
+            lr_schedulers_kwargs=self.lr_schedulers_kwargs,
             criterion=self.criterion,
             criterion_kwargs=self.criterion_kwargs,
         )
@@ -487,25 +538,29 @@ class MultiClassifierTraining(TrainingScript):
         print("Completed setup.")
 
     def run(self):
-        self.callback.on_run_begin(self.training_manager)
+        self.callback.on_run_begin(self)
         for train_elements in self.training_manager:
-            self.callback.on_fold_begin()
+            self.callback.on_fold_begin(self)
             for trainer in train_elements.trainers:
                 trainer.model.train()
             for data in train_elements.train_data:
-                self.callback.on_train_batch_begin()
+                self.callback.on_train_batch_begin(self)
                 for trainer in train_elements.trainers:
-                    self.callback.on_model_select()
-                    self.callback.on_inference_end(data_handler=trainer.infer_itr(data))
+                    self.callback.on_model_select(self)
+                    self.callback.on_inference_end(
+                        self,
+                        data_handler=trainer.infer_itr(data))
                 
             for trainer in train_elements.trainers:
                 trainer.model.eval()
             for data in train_elements.val_data:
-                self.callback.on_val_batch_begin()
+                self.callback.on_val_batch_begin(self)
                 for trainer in train_elements.trainers:
-                    self.callback.on_model_select()
-                    self.callback.on_inference_end(data_handler=trainer.infer_itr(data))
-
+                    self.callback.on_model_select(self)
+                    self.callback.on_inference_end(
+                        self,
+                        data_handler=trainer.infer_itr(data))
+        self.training_manager.step_lr_schedulers()
         return self.callback.get_epoch_metrics()
 
 class ClassifierTraining(TrainingScript):
@@ -908,6 +963,196 @@ class Main(Script):
         ray.shutdown()
         print("Done")
 
+
+    def LRRangeTestRay(self):
+        num_trials = 1
+        num_cpus = 1 if self.debug else os.cpu_count()
+        num_gpus = 0 if self.debug else torch.cuda.device_count()
+        cpu_per_trial = num_cpus//num_trials
+        gpu_per_trial = num_gpus/num_trials
+        annotations_file=Path("/home/user/datasets/isic-2024-challenge/train-metadata.csv").resolve()
+        img_file=Path("/home/user/datasets/isic-2024-challenge/train-image.hdf5").resolve()
+        img_dir=Path("/home/user/datasets/isic-2024-challenge/train-image").resolve()
+        feature_reducer_paths=[
+            "./models/feature_reduction/PCA(n_components=0.9999)/model.onnx",
+            None,
+            ]
+        save_path=Path("./models/classifier").resolve()
+
+        ds = DatasetReg.SkinLesions
+        ds_kwargs = dict(
+            annotations_file=annotations_file,
+            img_file=img_file,
+                    img_dir=img_dir,
+            img_transform=PPPicture(
+                pad_mode='edge',
+                pass_larger_images=True,
+                        crop=True,
+                random_brightness=True,
+                random_contrast=True,
+                random_flips=True),
+            annotation_transform=PPLabels(
+                        exclusions=[
+                    "isic_id",
+                    "patient_id",
+                    "attribution",
+                    "copyright_license",
+                    "lesion_id",
+                    "iddx_full",
+                            "iddx_1",
+                            "iddx_2",
+                            "iddx_3",
+                            "iddx_4",
+                            "iddx_5",
+                    "mel_mitotic_index",
+                    "mel_thick_mm",
+                    "tbp_lv_dnn_lesion_confidence",
+                            ],
+                fill_nan_selections=[
+                    "age_approx",
+                        ],
+                fill_nan_values=[-1, 0],
+                        ),
+            label_desc='target',)
+        BATCHSIZE = 256
+        EPOCHS = 10
+        ds_len = len(DatasetReg.initialize(ds, ds_kwargs))
+        
+        ray.init(
+            num_cpus=num_cpus,
+            num_gpus=num_gpus,
+            local_mode=self.debug,
+            storage="/opt/ray/results"
+            )
+        tuner = tune.Tuner(
+            trainable_wrap(
+                MultiClassifierTraining,
+                num_cpus=cpu_per_trial,
+                num_gpus=gpu_per_trial),
+            run_config=air.RunConfig(
+                name="TransformerClassifier",
+                checkpoint_config=air.CheckpointConfig(checkpoint_frequency=4),
+                stop={"training_iteration": EPOCHS}),
+            param_space=dict(
+                dataset=ds,
+                dataset_kwargs=ds_kwargs,
+                pipelines=[[('fet', Path(pth).resolve())] if pth else pth
+                    for pth in feature_reducer_paths],
+                classifiers=[ModelReg.Classifier,ModelReg.Classifier],
+                classifiers_kwargs=dict(
+                    activation=ActivationReg.relu),
+                optimizers=OptimizerReg.adam,
+                optimizers_kwargs=dict(
+                    lr=tune.grid_search([0.00005])
+                ),
+                lr_schedulers=LRSchedulerReg.CyclicLR,
+                lr_schedulers_kwargs=dict(
+                    base_lr=0.000001,
+                    max_lr=0.0005,
+                    step_size_up=(ds_len//BATCHSIZE)*EPOCHS
+                ),
+                criterion=CriterionReg.cross_entropy,
+                criterion_kwargs=dict(
+                    weight=torch.tensor([393/401059, 400666/401059])
+                ),
+                save_path=save_path,
+                balance_training_set=False,
+                k_fold_splits=1,
+                batch_size=BATCHSIZE,
+                shuffle=True,
+                num_workers=cpu_per_trial-1,
+                callback=CallbackReg.LRRangeTestCallback
+            )
+        )
+        tuner.fit()
+        ray.shutdown()
+        print("Done")
+
+    def LRRangeTest(self):
+        annotations_file=Path("/home/user/datasets/isic-2024-challenge/train-metadata.csv").resolve()
+        img_file=Path("/home/user/datasets/isic-2024-challenge/train-image.hdf5").resolve()
+        img_dir=Path("/home/user/datasets/isic-2024-challenge/train-image").resolve()
+        feature_reducer_paths=[
+            "./models/feature_reduction/PCA(n_components=0.9999)/model.onnx",
+            None,
+            ]
+        save_path=Path("./models/classifier").resolve()
+
+        ds = DatasetReg.SkinLesionsSmall
+        ds_kwargs = dict(
+            annotations_file=annotations_file,
+            img_file=img_file,
+                    img_dir=img_dir,
+            img_transform=PPPicture(
+                pad_mode='edge',
+                pass_larger_images=True,
+                        crop=True,
+                random_brightness=True,
+                random_contrast=True,
+                random_flips=True),
+            annotation_transform=PPLabels(
+                        exclusions=[
+                    "isic_id",
+                    "patient_id",
+                    "attribution",
+                    "copyright_license",
+                    "lesion_id",
+                    "iddx_full",
+                            "iddx_1",
+                            "iddx_2",
+                            "iddx_3",
+                            "iddx_4",
+                            "iddx_5",
+                    "mel_mitotic_index",
+                    "mel_thick_mm",
+                    "tbp_lv_dnn_lesion_confidence",
+                            ],
+                fill_nan_selections=[
+                    "age_approx",
+                        ],
+                fill_nan_values=[-1, 0],
+                        ),
+            label_desc='target',)
+        BATCHSIZE = 1024
+        EPOCHS = 10
+        ds_len = len(DatasetReg.initialize(ds, ds_kwargs))
+        script = MultiClassifierTraining(
+                dataset=ds,
+                dataset_kwargs=ds_kwargs,
+                pipelines=[[('fet', Path(pth).resolve())] if pth else pth
+                    for pth in feature_reducer_paths],
+                classifiers=[ModelReg.Classifier,ModelReg.Classifier],
+                classifiers_kwargs=dict(
+                    activation=ActivationReg.relu),
+                optimizers=OptimizerReg.adam,
+                optimizers_kwargs=dict(
+                    lr=0.00005
+                ),
+                lr_schedulers=LRSchedulerReg.CyclicLR,
+                lr_schedulers_kwargs=dict(
+                    base_lr=0.000001,
+                    max_lr=0.0005,
+                    step_size_up=(ds_len//BATCHSIZE)*EPOCHS
+                ),
+                criterion=CriterionReg.cross_entropy,
+                criterion_kwargs=dict(
+                    weight=torch.tensor([393/401059, 400666/401059])
+                ),
+                save_path=save_path,
+                balance_training_set=False,
+                k_fold_splits=1,
+                batch_size=BATCHSIZE,
+                shuffle=True,
+                num_workers=os.cpu_count()-1 if not self.debug else 0,
+                callback=CallbackReg.LRRangeTestCallback
+            )
+        script.setup()
+        results = script.run()
+
+        for i, (mod, data_samp) in enumerate(script.get_models_for_onnx_save()):
+            script.save_model(mod, data_samp, i)
+            script.save_results(mod, results)
+
     def trainClassifiersRay(self):
         num_trials = 1
         num_cpus = 1 if self.debug else os.cpu_count()
@@ -1127,6 +1372,8 @@ class Main(Script):
             "train_classes":self.trainClassifiers,
             "train_class_ray":self.trainClassifierRay,
             "train_classes_ray":self.trainClassifiersRay,
+            "lr_range_test":self.LRRangeTest,
+            "lr_range_test_ray":self.LRRangeTestRay,
         }
         self.script = premades[self.script]
 
