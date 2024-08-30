@@ -115,9 +115,9 @@ Features
 
             .. image:: figures/fill_nan.png
 
-.. _V1:
+.. _V1.0:
 
-Version 1
+Version 1.0
 -----------
     A vision transformer taking features as query tokens for the decoder. Image and
     features are preprocessed, features are fed to a feature reducer, then all
@@ -230,3 +230,107 @@ Lessons Learned
     Weights in the loss function may also help better balance the dataset and 
     enable better generalization, but will come at a cost of requiring many
     training epochs.
+
+.. _V1.1:
+
+Version 1.1
+-----------
+    Taking from the lessons learned in 1.0, corrections have been made to 
+    prevent information leakage between training and validation data.
+    Additionally, scalable training has been introduced courtesy of the Ray
+    python library:cite:`moritz2018raydistributedframeworkemerging`.
+
+Training
+^^^^^^^^^^
+    To address the training set class imbalance, and to avoid data leakage, 
+    weights have been applied to the cross entropy loss calculation. The impact 
+    of loss calculated based on benign labels then is significantly less than
+    that of the malignant labels, with a weight of 393/401,059 to malignant's
+    400,666/401,059. Given the very few number of malignant examples, it is 
+    still expected many epochs will be necessary for good performance.
+    
+    Further, the K-fold training scheme has been revised to create as many
+    models to train as their exist folds. However, for this training round in
+    particular, a single model is trained, and the dataset is simply split, 
+    using 80% of it for training and the remaining 20% for validation, ensuring
+    a proportional number of classification examples in each split.
+
+    A future goal remains to balance the the dataset by duplicating malignant
+    examples. Each epoch will be more effective, and it affords the opportunity
+    to augment the dataset in other ways like various transformations of the
+    images.
+
+    With Ray:cite:`moritz2018raydistributedframeworkemerging`, hardware
+    requirements can be defined per training instance. Then, depending on the
+    resources made available to the ray server, multiple training instances can
+    be run simultaneously, seen below in :numref:`parallel_training`.
+    Additionally, Ray provides a tuning module which allows an easy means of
+    exploring multiple training configurations, along with the application of
+    optimization algorithms. Specifically, for this version, 4 feature reduction
+    techniques are explored: none at all, and principal component analysis fit
+    to explain 80%, 99%, and 99.99% of data variance.
+    
+    .. _parallel_training:
+    .. figure:: figures/parallel_training.png
+
+        Parallel training enabled by Ray library.
+    
+    Each model was trained with only a difference in the dataset feature
+    reduction transformation and the following configuration in common:
+
+        ===============  =============
+        Option           Value
+        ===============  =============
+        Epochs           20
+        Optimizer        Adam
+        Learning Rate    0.00005
+        ===============  =============
+
+Results
+^^^^^^^^^^
+    Much more promising than the previous version, validation results are now
+    much less than perfect, even after 5 times the training iterations. It seems
+    the data leakage problems have been addressed. Then, our validation results 
+    are much more reliable in determining effective models.
+    :numref:`1.1tensorboard` shows our slowly converging loss, true for both the
+    training and validation set, meaning learning is occurring and at least some 
+    generalization of whats being learned can be expected. For this dataset,
+    because of the large proportion of benign results, 'accuracy' is poorly
+    representative of the models capability with respect to correctly 
+    identifying malignant lesions. So as exciting as the greater than 99%
+    accuracy may be, more importantly to this case we track precision and
+    recall, focusing on the malignant examples.
+    
+    .. _1.1tensorboard:
+    .. figure:: figures/1.1tensorboard.png
+
+        Training results for classifier trained with PCA explaining 99.99% 
+        (00000), 99% (00001), 80% (00002) variance, and no feature reduction 
+        (00003).
+
+    While no result for recall or precision is great in 
+    :numref:`1.1tensorboard`, it is clear that no feature reduction, and PCA
+    capturing the most variance at 99.99% perform best. So, these are submitted
+    to the kaggle competition to ensure we are on the right track, with a marked
+    improvement in pAUC of .100 for the version using PCA, and .109 for the
+    version with no feature reduction at all.
+
+Lessons Learned
+^^^^^^^^^^^^^^^^
+    Seen in :numref:`1.1tensorboard`, precision and recall leave a lot to be
+    desired, yet it is clear the models are still learning from the continually
+    declining loss. Additional epochs will likely be of great use to the models,
+    though will cost significant time. A more complex learning rate scheme may
+    also be of use, scheduling a decaying rate for instance, enabling aggressive
+    
+
+
+    
+.. _V1.2:
+
+Version 1.2
+-----------
+    
+
+Preprocessing
+^^^^^^^^^^^^^^^^

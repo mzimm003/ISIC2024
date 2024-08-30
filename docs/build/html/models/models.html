@@ -207,8 +207,8 @@ otherwise never exist for that feature.</p>
 </div></blockquote>
 </section>
 </section>
-<section id="version-1">
-<span id="v1"></span><h2>Version 1<a class="headerlink" href="#version-1" title="Link to this heading">¶</a></h2>
+<section id="version-1-0">
+<span id="v1-0"></span><h2>Version 1.0<a class="headerlink" href="#version-1-0" title="Link to this heading">¶</a></h2>
 <blockquote>
 <div><p>A vision transformer taking features as query tokens for the decoder. Image and
 features are preprocessed, features are fed to a feature reducer, then all
@@ -244,10 +244,10 @@ information.</p></li>
 <section id="model">
 <h3>Model<a class="headerlink" href="#model" title="Link to this heading">¶</a></h3>
 <blockquote>
-<div><figure class="align-default" id="id4">
+<div><figure class="align-default" id="id7">
 <span id="mod-arc"></span><img alt="../_images/model.png" src="../_images/model.png" />
 <figcaption>
-<p><span class="caption-number">Fig. 1 </span><span class="caption-text">Basic flow of model architecture.</span><a class="headerlink" href="#id4" title="Link to this image">¶</a></p>
+<p><span class="caption-number">Fig. 1 </span><span class="caption-text">Basic flow of model architecture.</span><a class="headerlink" href="#id7" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <p><a class="reference internal" href="#mod-arc"><span class="std std-numref">Fig. 1</span></a> shows how the information provided by the ISIC dataset is
@@ -325,6 +325,100 @@ better generalizing model.</p>
 enable better generalization, but will come at a cost of requiring many
 training epochs.</p>
 </div></blockquote>
+</section>
+</section>
+<section id="version-1-1">
+<span id="v1-1"></span><h2>Version 1.1<a class="headerlink" href="#version-1-1" title="Link to this heading">¶</a></h2>
+<blockquote>
+<div><p>Taking from the lessons learned in 1.0, corrections have been made to
+prevent information leakage between training and validation data.
+Additionally, scalable training has been introduced courtesy of the Ray
+python library:cite:<cite>moritz2018raydistributedframeworkemerging</cite>.</p>
+</div></blockquote>
+<section id="id4">
+<h3>Training<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p>To address the training set class imbalance, and to avoid data leakage,
+weights have been applied to the cross entropy loss calculation. The impact
+of loss calculated based on benign labels then is significantly less than
+that of the malignant labels, with a weight of 393/401,059 to malignant’s
+400,666/401,059. Given the very few number of malignant examples, it is
+still expected many epochs will be necessary for good performance. A future
+goal remains to balance the the dataset by duplicating malignant examples.
+Each epoch will be more effective, and it affords the opportunity to
+augment the dataset in other ways like various transformations of the
+images.</p>
+<p>With Ray:cite:<cite>moritz2018raydistributedframeworkemerging</cite>, hardware
+requirements can be defined per training instance. Then, depending on the
+resources made available to the ray server, multiple training instances can
+be run simultaneously, seen below in <a class="reference internal" href="#parallel-training"><span class="std std-numref">Fig. 2</span></a>.
+Additionally, Ray provides a tuning module which allows an easy means of
+exploring multiple training configurations, along with the application of
+optimization algorithms. Specifically, for this version, 4 feature reduction
+techniques are explored: none at all, and principal component analysis fit
+to explain 80%, 99%, and 99.99% of data variance.</p>
+<figure class="align-default" id="id8">
+<span id="parallel-training"></span><img alt="models/figures/parallel_training.png" src="models/figures/parallel_training.png" />
+<figcaption>
+<p><span class="caption-number">Fig. 2 </span><span class="caption-text">Parallel training enabled by Ray library.</span><a class="headerlink" href="#id8" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>Each model was trained with only a difference in the dataset feature
+reduction transformation and the following configuration in common:</p>
+<blockquote>
+<div><table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Epochs</p></td>
+<td><p>20</p></td>
+</tr>
+<tr class="row-odd"><td><p>Learning Rate</p></td>
+<td><p>0.00005</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Header row, column 1
+(header rows optional)</p></th>
+<th class="head"><p>Header 2</p></th>
+<th class="head"><p>Header 3</p></th>
+<th class="head"><p>Header 4</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>body row 1, column 1</p></td>
+<td><p>column 2</p></td>
+<td><p>column 3</p></td>
+<td><p>column 4</p></td>
+</tr>
+<tr class="row-odd"><td><p>body row 2</p></td>
+<td><p>…</p></td>
+<td><p>…</p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div></blockquote>
+</div></blockquote>
+</section>
+<section id="id5">
+<h3>Results<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h3>
+</section>
+</section>
+<section id="version-1-2">
+<span id="v1-2"></span><h2>Version 1.2<a class="headerlink" href="#version-1-2" title="Link to this heading">¶</a></h2>
+<blockquote>
+<div><p>A vision transformer taking features as query tokens for the decoder. Image and
+features are preprocessed, features are fed to a feature reducer, then all
+combined by a transformer to produce a classification.</p>
+</div></blockquote>
+<section id="id6">
+<h3>Preprocessing<a class="headerlink" href="#id6" title="Link to this heading">¶</a></h3>
 </section>
 </section>
 </section>
