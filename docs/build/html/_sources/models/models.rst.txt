@@ -115,9 +115,9 @@ Features
 
             .. image:: figures/fill_nan.png
 
-.. _V1:
+.. _V1.0:
 
-Version 1
+Version 1.0
 -----------
     A vision transformer taking features as query tokens for the decoder. Image and
     features are preprocessed, features are fed to a feature reducer, then all
@@ -230,3 +230,73 @@ Lessons Learned
     Weights in the loss function may also help better balance the dataset and 
     enable better generalization, but will come at a cost of requiring many
     training epochs.
+
+.. _V1.1:
+
+Version 1.1
+-----------
+    Taking from the lessons learned in 1.0, corrections have been made to 
+    prevent information leakage between training and validation data.
+    Additionally, scalable training has been introduced courtesy of the Ray
+    python library:cite:`moritz2018raydistributedframeworkemerging`.
+
+Training
+^^^^^^^^^^
+    To address the training set class imbalance, and to avoid data leakage, 
+    weights have been applied to the cross entropy loss calculation. The impact 
+    of loss calculated based on benign labels then is significantly less than
+    that of the malignant labels, with a weight of 393/401,059 to malignant's
+    400,666/401,059. Given the very few number of malignant examples, it is 
+    still expected many epochs will be necessary for good performance. A future
+    goal remains to balance the the dataset by duplicating malignant examples.
+    Each epoch will be more effective, and it affords the opportunity to
+    augment the dataset in other ways like various transformations of the
+    images.
+
+    With Ray:cite:`moritz2018raydistributedframeworkemerging`, hardware
+    requirements can be defined per training instance. Then, depending on the
+    resources made available to the ray server, multiple training instances can
+    be run simultaneously, seen below in :numref:`parallel_training`.
+    Additionally, Ray provides a tuning module which allows an easy means of
+    exploring multiple training configurations, along with the application of
+    optimization algorithms. Specifically, for this version, 4 feature reduction
+    techniques are explored: none at all, and principal component analysis fit
+    to explain 80%, 99%, and 99.99% of data variance.
+    
+    .. _parallel_training:
+    .. figure:: figures/parallel_training.png
+
+        Parallel training enabled by Ray library.
+    
+    Each model was trained with only a difference in the dataset feature
+    reduction transformation and the following configuration in common:
+
+        ===============  =============
+        Option           Value
+        ===============  =============
+        Epochs           20
+        Learning Rate    0.00005
+        ===============  =============
+        
+        +------------------------+------------+----------+----------+
+        | Header row, column 1   | Header 2   | Header 3 | Header 4 |
+        | (header rows optional) |            |          |          |
+        +========================+============+==========+==========+
+        | body row 1, column 1   | column 2   | column 3 | column 4 |
+        +------------------------+------------+----------+----------+
+        | body row 2             | ...        | ...      |          |
+        +------------------------+------------+----------+----------+
+
+Results
+^^^^^^^^^^
+    
+.. _V1.2:
+
+Version 1.2
+-----------
+    A vision transformer taking features as query tokens for the decoder. Image and
+    features are preprocessed, features are fed to a feature reducer, then all
+    combined by a transformer to produce a classification.
+
+Preprocessing
+^^^^^^^^^^^^^^^^
