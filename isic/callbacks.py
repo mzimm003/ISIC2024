@@ -158,8 +158,8 @@ class Callback:
         pass
 
 class ClassifierTrainingCallback(Callback):
-    TRAINING_METRICS = [Loss]
-    VALIDATION_METRICS = [Loss, Accuracy, Precision, Recall, pAUC]
+    TRAINING_METRICS = [Loss, LearningRate]
+    VALIDATION_METRICS = [Loss, Accuracy, Precision, Recall, pAUC, LearningRate]
     INFERENCE_MODES = ["training","validation"]
     
     def get_epoch_metrics(self):

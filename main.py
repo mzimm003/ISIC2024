@@ -1014,7 +1014,7 @@ class Main(Script):
                 fill_nan_values=[-1, 0],
                         ),
             label_desc='target',)
-        BATCHSIZE = 256
+        BATCHSIZE = 512
         EPOCHS = 10
         ds_len = len(DatasetReg.initialize(ds, ds_kwargs))
         
@@ -1048,7 +1048,7 @@ class Main(Script):
                 lr_schedulers=LRSchedulerReg.CyclicLR,
                 lr_schedulers_kwargs=dict(
                     base_lr=0.000001,
-                    max_lr=0.0005,
+                    max_lr=0.0001,
                     step_size_up=(ds_len//BATCHSIZE)*EPOCHS
                 ),
                 criterion=CriterionReg.cross_entropy,
@@ -1154,9 +1154,23 @@ class Main(Script):
             script.save_results(mod, results)
 
     def trainClassifiersRay(self):
-        num_trials = 1
+        num_trials = 2
         num_cpus = 1 if self.debug else os.cpu_count()
         num_gpus = 0 if self.debug else torch.cuda.device_count()
+        BATCHSIZE=256
+        EPOCHS=100
+        lr_sched_params = {
+            False:dict(
+                    base_lr=0.000001,
+                    max_lr=0.00003,
+                    step_size_up=(401059/BATCHSIZE)*4
+                ),
+            True:dict(
+                    base_lr=0.000025,
+                    max_lr=0.00005,
+                    step_size_up=(401059/BATCHSIZE)*4
+                ),
+                }
         cpu_per_trial = num_cpus//num_trials
         gpu_per_trial = num_gpus/num_trials
         annotations_file=Path("/home/user/datasets/isic-2024-challenge/train-metadata.csv").resolve()
@@ -1181,7 +1195,7 @@ class Main(Script):
             run_config=air.RunConfig(
                 name="TransformerClassifier",
                 checkpoint_config=air.CheckpointConfig(checkpoint_frequency=5),
-                stop={"training_iteration": 100}),
+                stop={"training_iteration": EPOCHS}),
             param_space=dict(
                 dataset=DatasetReg.SkinLesions,
                 dataset_kwargs=dict(
@@ -1218,15 +1232,17 @@ class Main(Script):
                         fill_nan_values=[-1, 0],
                         ),
                     label_desc='target',),
-                pipelines=[[('fet', Path(pth).resolve())] if pth else pth
-                    for pth in feature_reducer_paths],
-                classifiers=[ModelReg.Classifier,ModelReg.Classifier],
+                pipelines=tune.grid_search([[[('fet', Path(pth).resolve())] if pth else pth]
+                    for pth in feature_reducer_paths]),
+                classifiers=ModelReg.Classifier,
                 classifiers_kwargs=dict(
                     activation=ActivationReg.relu),
                 optimizers=OptimizerReg.adam,
                 optimizers_kwargs=dict(
                     lr=tune.grid_search([0.00005])
                 ),
+                lr_schedulers=LRSchedulerReg.CyclicLR,
+                lr_schedulers_kwargs=tune.sample_from(lambda spec: lr_sched_params[spec.config.pipelines is None]),
                 criterion=CriterionReg.cross_entropy,
                 criterion_kwargs=dict(
                     weight=torch.tensor([393/401059, 400666/401059])
@@ -1234,7 +1250,7 @@ class Main(Script):
                 save_path=save_path,
                 balance_training_set=False,
                 k_fold_splits=1,
-                batch_size=256,
+                batch_size=BATCHSIZE,
                 shuffle=True,
                 num_workers=cpu_per_trial-1,
             )
