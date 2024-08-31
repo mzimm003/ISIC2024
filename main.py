@@ -406,7 +406,7 @@ class Trainer:
         with torch.autocast(device_type=self.device.type):
             data_handler.set_model_output(self.model(**data_handler.get_inputs()))
             
-            data_handler.set_loss(self.criterion(data_handler.output, data_handler.target))
+            data_handler.set_loss(self.criterion)
 
         if self.model.training:
             data_handler.loss.backward()
@@ -947,7 +947,7 @@ class Main(Script):
                 optimizer_kwargs=dict(
                     lr=tune.grid_search([0.00005])
                 ),
-                criterion=CriterionReg.cross_entropy,
+                criterion=CriterionReg.ClassifierLoss,
                 criterion_kwargs=dict(
                     weight=torch.tensor([393/401059, 400666/401059])
                 ),
@@ -1051,7 +1051,7 @@ class Main(Script):
                     max_lr=0.0001,
                     step_size_up=(ds_len//BATCHSIZE)*EPOCHS
                 ),
-                criterion=CriterionReg.cross_entropy,
+                criterion=CriterionReg.ClassifierLoss,
                 criterion_kwargs=dict(
                     weight=torch.tensor([393/401059, 400666/401059])
                 ),
@@ -1134,7 +1134,7 @@ class Main(Script):
                     max_lr=0.0005,
                     step_size_up=(ds_len//BATCHSIZE)*EPOCHS
                 ),
-                criterion=CriterionReg.cross_entropy,
+                criterion=CriterionReg.ClassifierLoss,
                 criterion_kwargs=dict(
                     weight=torch.tensor([393/401059, 400666/401059])
                 ),
@@ -1163,12 +1163,12 @@ class Main(Script):
             False:dict(
                     base_lr=0.000001,
                     max_lr=0.00003,
-                    step_size_up=(401059/BATCHSIZE)*4
+                    step_size_up=(401059//BATCHSIZE)*1
                 ),
             True:dict(
                     base_lr=0.000025,
                     max_lr=0.00005,
-                    step_size_up=(401059/BATCHSIZE)*4
+                    step_size_up=(401059//BATCHSIZE)*1
                 ),
                 }
         cpu_per_trial = num_cpus//num_trials
@@ -1194,7 +1194,7 @@ class Main(Script):
                 num_gpus=gpu_per_trial),
             run_config=air.RunConfig(
                 name="TransformerClassifier",
-                checkpoint_config=air.CheckpointConfig(checkpoint_frequency=5),
+                checkpoint_config=air.CheckpointConfig(checkpoint_frequency=2),
                 stop={"training_iteration": EPOCHS}),
             param_space=dict(
                 dataset=DatasetReg.SkinLesions,
@@ -1243,7 +1243,7 @@ class Main(Script):
                 ),
                 lr_schedulers=LRSchedulerReg.CyclicLR,
                 lr_schedulers_kwargs=tune.sample_from(lambda spec: lr_sched_params[spec.config.pipelines is None]),
-                criterion=CriterionReg.cross_entropy,
+                criterion=CriterionReg.ClassifierLoss,
                 criterion_kwargs=dict(
                     weight=torch.tensor([393/401059, 400666/401059])
                 ),
@@ -1312,7 +1312,7 @@ class Main(Script):
                 optimizers_kwargs=dict(
                     lr=0.00005
                 ),
-                criterion=CriterionReg.cross_entropy,
+                criterion=CriterionReg.ClassifierLoss,
                 criterion_kwargs=dict(
                     weight=torch.tensor([393/401059, 400666/401059])
                 ),
@@ -1371,7 +1371,7 @@ class Main(Script):
                 feature_reducer_path="./models/feature_reduction/PCA(n_components=0.9999)/model.onnx",
             ),
             optimizer=OptimizerReg.adam,
-            criterion=CriterionReg.cross_entropy,
+            criterion=CriterionReg.ClassifierLoss,
             batch_size=2,
             save_path="./models/classifier",
             balance_training_set=True,

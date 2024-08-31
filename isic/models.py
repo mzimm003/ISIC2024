@@ -76,6 +76,11 @@ class Classifier(nn.Module):
             batch_first = True,
             norm_first = norm_first,
         )
+        self.enc_is_malignant = nn.Sequential(
+            nn.Linear(embedding_dim, 2),
+            self.activation,
+            nn.Flatten(-2),
+            nn.LazyLinear(2))
         self.is_malignant = nn.Sequential(
             nn.Linear(embedding_dim, 2),
             self.activation,
@@ -103,9 +108,11 @@ class Classifier(nn.Module):
         pos_emb = self.img_flatten(pos_emb)
         img = self.reshape_img(img)
         im_emb = self.img_patch_embedding(img)
-        trans_logits = self.transformer(im_emb + pos_emb, fet)
+        enc_mem = self.transformer.encoder(im_emb + pos_emb)
+        enc_logits = self.enc_is_malignant(enc_mem)
+        trans_logits = self.transformer.decoder(fet, enc_mem)
         logits = self.is_malignant(trans_logits)
-        return logits
+        return logits, enc_logits
 
     def name(self):
         return "test"

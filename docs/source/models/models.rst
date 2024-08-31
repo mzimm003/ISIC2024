@@ -398,12 +398,19 @@ Version 1.3
 
 Preprocessing
 ^^^^^^^^^^^^^^^^
+    It can be difficult to anticipate the quality of the images to be received
+    in cases like different users submitting cell phone photos, the emulated
+    scenario for this competition. In all these cases of preprocessing, the aim
+    is to mitigate the impact of non-standard qualities which can be commonly 
+    varied by smart phone filters and user indifference to orientation.
 
     .. container:: twocol
 
         .. container:: leftside
 
-            **Brightness Adjustment** - 
+            **Brightness Adjustment** - A constant increase or decrease in all
+            pixel RGB values, capped at either side of the spectrum (white can't
+            get whiter, black can't get blacker).
 
         .. container:: rightside
 
@@ -413,7 +420,8 @@ Preprocessing
 
         .. container:: leftside
 
-            **Contrast Adjustment** - 
+            **Contrast Adjustment** - A multiplicative increase or decrease in
+            all pixel RGB values, capped at either side of the spectrum.
 
         .. container:: rightside
 
@@ -423,7 +431,8 @@ Preprocessing
 
         .. container:: leftside
 
-            **Flip** - 
+            **Flip** - An exchange of pixels, mirrored across a horizontal or
+            vertical axis, or both.
 
         .. container:: rightside
 
@@ -443,3 +452,7 @@ Results - pAUC: 0.149
 Version 1.5
 -----------
     Cyclical learning rate
+
+Version 1.6
+-----------
+    Intermediate classification/loss based on encoder only.

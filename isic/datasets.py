@@ -17,6 +17,7 @@ from typing import (
     List,
     Callable
 )
+from collections.abc import Iterable
 from pathlib import Path
 import math
 
@@ -99,6 +100,7 @@ class DataHandlerGenerator:
 class DataHandler:
     loss:torch.Tensor
     output:torch.Tensor
+    aux_output:Union[tuple[torch.Tensor],None]
     output_label:torch.Tensor
     target:torch.Tensor
     last_lr:float
@@ -141,11 +143,21 @@ class DataHandler:
     def get_last_lr(self):
         return self.last_lr
 
-    def set_loss(self, loss):
+    def set_loss(self, criterion:nn.Module):
+        kwargs = {"input":self.output,
+                  "target":self.target}
+        if self.aux_output:
+            kwargs["aux_input"] = self.aux_output
+        loss = criterion(**kwargs)
         self.loss = loss
 
     def set_model_output(self, output):
-        self.output = output
+        self.aux_output = None
+        if isinstance(output, Iterable):
+            self.aux_output = output[1:]
+        else:
+            output = output,
+        self.output = output[0]
         self.output_label = self.output.max(-1).indices
 
     def run_pipeline(self):

@@ -515,28 +515,37 @@ in the preprocessing, particularly of the images.</p>
 <section id="id11">
 <h3>Preprocessing<a class="headerlink" href="#id11" title="Link to this heading">¶</a></h3>
 <blockquote>
-<div><div class="twocol docutils container">
+<div><p>It can be difficult to anticipate the quality of the images to be received
+in cases like different users submitting cell phone photos, the emulated
+scenario for this competition. In all these cases of preprocessing, the aim
+is to mitigate the impact of non-standard qualities which can be commonly
+varied by smart phone filters and user indifference to orientation.</p>
+<div class="twocol docutils container">
 <div class="leftside docutils container">
-<p><strong>Brightness Adjustment</strong> -</p>
+<p><strong>Brightness Adjustment</strong> - A constant increase or decrease in all
+pixel RGB values, capped at either side of the spectrum (white can’t
+get whiter, black can’t get blacker).</p>
 </div>
 <div class="rightside docutils container">
-<img alt="models/figures/brightness_adjustment.png" src="models/figures/brightness_adjustment.png" />
+<img alt="../_images/brightness_adjustment.png" src="../_images/brightness_adjustment.png" />
 </div>
 </div>
 <div class="twocol docutils container">
 <div class="leftside docutils container">
-<p><strong>Contrast Adjustment</strong> -</p>
+<p><strong>Contrast Adjustment</strong> - A multiplicative increase or decrease in
+all pixel RGB values, capped at either side of the spectrum.</p>
 </div>
 <div class="rightside docutils container">
-<img alt="models/figures/contrast_adjustment.png" src="models/figures/contrast_adjustment.png" />
+<img alt="../_images/contrast_adjustment.png" src="../_images/contrast_adjustment.png" />
 </div>
 </div>
 <div class="twocol docutils container">
 <div class="leftside docutils container">
-<p><strong>Flip</strong> -</p>
+<p><strong>Flip</strong> - An exchange of pixels, mirrored across a horizontal or
+vertical axis, or both.</p>
 </div>
 <div class="rightside docutils container">
-<img alt="models/figures/flip_adjustment.png" src="models/figures/flip_adjustment.png" />
+<img alt="../_images/flip_adjustment.png" src="../_images/flip_adjustment.png" />
 </div>
 </div>
 </div></blockquote>

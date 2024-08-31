@@ -148,6 +148,21 @@ class LRSchedulerReg(Registry):
         kwargs['optimizer'] = optimizer
         return super().initialize(obj, kwargs)
 
+
+class ClassifierLoss(nn.Module):
+    def __init__(self, classification_criterion=None, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.classification_criterion = (
+            classification_criterion
+            if not classification_criterion is None
+            else nn.CrossEntropyLoss())
+            
+    def forward(self, input, aux_input, target):
+        main_loss = self.classification_criterion(input, target)
+        aux_loss = self.classification_criterion(aux_input, target)
+        return main_loss + aux_loss
+
 class CriterionReg(Registry):
     MSE = nn.MSELoss
     cross_entropy = nn.CrossEntropyLoss
+    ClassifierLoss = ClassifierLoss
