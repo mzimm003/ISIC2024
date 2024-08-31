@@ -284,10 +284,10 @@ class PreProcess(nn.Module):
 class PPPicture(PreProcess):
     def __init__(
         self,
-        random_brightness:bool = True,
-        random_contrast:bool = True,
+        random_brightness:bool = False,
+        random_contrast:bool = False,
         rescale_images:bool = True,
-        random_flips:bool = True,
+        random_flips:bool = False,
         omit:bool = False,
         pad_mode:str = None,
         pad_width=200,

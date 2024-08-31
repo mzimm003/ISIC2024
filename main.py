@@ -1031,7 +1031,7 @@ class Main(Script):
                 num_gpus=gpu_per_trial),
             run_config=air.RunConfig(
                 name="TransformerClassifier",
-                checkpoint_config=air.CheckpointConfig(checkpoint_frequency=4),
+                checkpoint_config=air.CheckpointConfig(checkpoint_frequency=5),
                 stop={"training_iteration": EPOCHS}),
             param_space=dict(
                 dataset=ds,
