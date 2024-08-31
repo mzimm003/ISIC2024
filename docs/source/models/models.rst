@@ -210,8 +210,8 @@ Training
     To assess loss, cross entropy is used, taking the logits of the transformer
     compared to the target provided by the data set.
 
-Results
-^^^^^^^^^^
+Results - pAUC: 0.021
+^^^^^^^^^^^^^^^^^^^^^^^
     Over 4 iterations over the 4 folds, accuracy, precision, and recall end up
     over 99%. However, once tested in competition, the score achieved is quite
     poor, an pAUC of 0.021.
@@ -238,7 +238,7 @@ Version 1.1
     Taking from the lessons learned in 1.0, corrections have been made to 
     prevent information leakage between training and validation data.
     Additionally, scalable training has been introduced courtesy of the Ray
-    python library:cite:`moritz2018raydistributedframeworkemerging`.
+    python library :cite:`moritz2018raydistributedframeworkemerging`.
 
 Training
 ^^^^^^^^^^
@@ -260,7 +260,7 @@ Training
     to augment the dataset in other ways like various transformations of the
     images.
 
-    With Ray:cite:`moritz2018raydistributedframeworkemerging`, hardware
+    With Ray :cite:`moritz2018raydistributedframeworkemerging`, hardware
     requirements can be defined per training instance. Then, depending on the
     resources made available to the ray server, multiple training instances can
     be run simultaneously, seen below in :numref:`parallel_training`.
@@ -286,8 +286,8 @@ Training
         Learning Rate    0.00005
         ===============  =============
 
-Results
-^^^^^^^^^^
+Results - pAUC: 0.109
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
     Much more promising than the previous version, validation results are now
     much less than perfect, even after 5 times the training iterations. It seems
     the data leakage problems have been addressed. Then, our validation results 
@@ -322,15 +322,124 @@ Lessons Learned
     declining loss. Additional epochs will likely be of great use to the models,
     though will cost significant time. A more complex learning rate scheme may
     also be of use, scheduling a decaying rate for instance, enabling aggressive
+    learning up front, while still including nuanced learning capability toward
+    the end.
     
-
-
     
 .. _V1.2:
 
 Version 1.2
 -----------
+    Recognizing 2 decoder feature queries as an arbitrary choice, I have
+    modified the sequence the decoder receives to be a set of queries, one for
+    each feature.
     
+Model
+^^^^^^^^^^
+    The feature set, reduced or otherwise, is separated creating
+    a vector for each feature where all other features are zero. These vectors
+    are then fed to an embedding space, a dense neural network, which first
+    linearly projects each vector individually, passes that projection through
+    an activation function, then performs another linear projection
+    interconnecting the results. This provides the vectors a chance for
+    embedding considering only themselves as well as an embedding based on
+    relationships. These embedded feature vectors are then passed to the
+    decoder. The updated process is visualized in :numref:`feature_embedding_update`,
+    all other elements to the model remain the same.
+
+    .. _feature_embedding_update:
+    .. figure:: figures/feature_embedding_update.png
+
+        Update to feature embedding process, including a mask to allow each
+        feature to produce a decoder query.
+
+Results - pAUC: 0.138
+^^^^^^^^^^^^^^^^^^^^^^^^
+    :numref:`feature_embedding_update` shows a the new feature embedding scheme
+    much improved, particularly for the model including feature reduction, as 
+    accuracy, precision, and recall all score higher. For the model without
+    feature reduction, precision scores as well as the previous models, lags in
+    recall, but seems to do considerably better in accuracy. The final test then
+    is a submission to the Kaggle competition, and the model with feature
+    reduction scores 0.131, while the model without scores 0.138. 
+
+    .. _1.2tensorboard:
+    .. figure:: figures/1.2tensorboard.png
+
+        Training results for classifier trained with old feature embedding
+        structure (d9499) and the new structure (91029), coupled with PCA
+        explaining 99.99% (00000) and no feature reduction (00003). Results have
+        been smoothed for clarity.
+
+Lessons Learned
+^^^^^^^^^^^^^^^^^^^^
+    The most obvious lesson is that the metrics currently used still make it
+    difficult to discern which model will perform best. Though more complicated,
+    a pAUC metric run during validation would be more relevant to the goals of
+    this competition.
+
+    Clearly the structure of the embeddings fed to the decoder is important. It
+    could be the increased length of the sequence that is more useful, the 
+    holding features distinct in their embedding before relating them, or a
+    mix of both. Since the decoder already serves all kinds of inter-relational
+    analysis, it could serve to keep the features separate throughout the
+    embedding process, but the current process was chosen to save space.
+    An arbitrarily longer sequence could also be generated, which may be
+    worthwhile in the current structure where feature inter-relations are
+    embedded more than individual, so it could make sense to provide a sequence 
+    with up to as many vectors as there are combinations of features.
+
+.. _V1.3:
+
+Version 1.3
+-----------
+    To gain better generalization performance, I introduce greater randomization
+    in the preprocessing, particularly of the images.
 
 Preprocessing
 ^^^^^^^^^^^^^^^^
+
+    .. container:: twocol
+
+        .. container:: leftside
+
+            **Brightness Adjustment** - 
+
+        .. container:: rightside
+
+            .. image:: figures/brightness_adjustment.png
+
+    .. container:: twocol
+
+        .. container:: leftside
+
+            **Contrast Adjustment** - 
+
+        .. container:: rightside
+
+            .. image:: figures/contrast_adjustment.png
+
+    .. container:: twocol
+
+        .. container:: leftside
+
+            **Flip** - 
+
+        .. container:: rightside
+
+            .. image:: figures/flip_adjustment.png
+
+
+Results - pAUC: 0.126
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Version 1.4
+-----------
+    Greater number  of epochs.
+
+Results - pAUC: 0.149
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Version 1.5
+-----------
+    Cyclical learning rate

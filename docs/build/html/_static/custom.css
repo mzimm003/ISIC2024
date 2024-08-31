@@ -6,7 +6,7 @@
     overflow: hidden;
     background-color: #DDDDDD;
 }
-.toctree-wrapper ul{
+.toctree-wrapper ul {
     padding: 0;
     margin: 0;
 }
@@ -24,7 +24,7 @@ div.leftside {
     width: 200%;
 }
 
-div.rightside{
+div.rightside {
     padding-left: 30px;
     padding-top: 20px;
 }

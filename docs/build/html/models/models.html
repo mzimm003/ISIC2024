@@ -7,9 +7,10 @@
 
     <title>Models &#8212; ISIC 2024 0.0.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d1102ebc" />
-    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=8c697a15" />
+    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=c058f7c8" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=e480df4b" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
-    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=c0687165" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=cf12ce29" />
     <script src="../_static/documentation_options.js?v=d45e8c67"></script>
     <script src="../_static/doctools.js?v=9a2dae69"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
@@ -28,7 +29,7 @@
   </head><body>
   <div class="document">
     
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
         <div class="sphinxsidebarwrapper">
 <h1 class="logo"><a href="../index.html">ISIC 2024</a></h1>
 
@@ -48,7 +49,16 @@
 
 
 
-<h3>Navigation</h3>
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
 <ul class="current">
 <li class="toctree-l1"><a class="reference external" href="https://www.kaggle.com/competitions/isic-2024-challenge">Competition Site</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../plan/plan.html">Plan</a></li>
@@ -73,16 +83,6 @@
   </ul></li>
 </ul>
 </div>
-<search id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</search>
-<script>document.getElementById('searchbox').style.display = "block"</script>
 
 
 
@@ -244,10 +244,10 @@ information.</p></li>
 <section id="model">
 <h3>Model<a class="headerlink" href="#model" title="Link to this heading">¶</a></h3>
 <blockquote>
-<div><figure class="align-default" id="id7">
+<div><figure class="align-default" id="id12">
 <span id="mod-arc"></span><img alt="../_images/model.png" src="../_images/model.png" />
 <figcaption>
-<p><span class="caption-number">Fig. 1 </span><span class="caption-text">Basic flow of model architecture.</span><a class="headerlink" href="#id7" title="Link to this image">¶</a></p>
+<p><span class="caption-number">Fig. 1 </span><span class="caption-text">Basic flow of model architecture.</span><a class="headerlink" href="#id12" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <p><a class="reference internal" href="#mod-arc"><span class="std std-numref">Fig. 1</span></a> shows how the information provided by the ISIC dataset is
@@ -302,8 +302,8 @@ results without significant effort put into tuning of hyperparameters.</p>
 compared to the target provided by the data set.</p>
 </div></blockquote>
 </section>
-<section id="results">
-<h3>Results<a class="headerlink" href="#results" title="Link to this heading">¶</a></h3>
+<section id="results-pauc-0-021">
+<h3>Results - pAUC: 0.021<a class="headerlink" href="#results-pauc-0-021" title="Link to this heading">¶</a></h3>
 <blockquote>
 <div><p>Over 4 iterations over the 4 folds, accuracy, precision, and recall end up
 over 99%. However, once tested in competition, the score achieved is quite
@@ -333,22 +333,27 @@ training epochs.</p>
 <div><p>Taking from the lessons learned in 1.0, corrections have been made to
 prevent information leakage between training and validation data.
 Additionally, scalable training has been introduced courtesy of the Ray
-python library:cite:<cite>moritz2018raydistributedframeworkemerging</cite>.</p>
+python library <span id="id4">[<a class="reference internal" href="../references.html#id5" title="Philipp Moritz, Robert Nishihara, Stephanie Wang, Alexey Tumanov, Richard Liaw, Eric Liang, Melih Elibol, Zongheng Yang, William Paul, Michael I. Jordan, and Ion Stoica. Ray: a distributed framework for emerging ai applications. 2018. URL: https://arxiv.org/abs/1712.05889, arXiv:1712.05889.">MNW+18</a>]</span>.</p>
 </div></blockquote>
-<section id="id4">
-<h3>Training<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h3>
+<section id="id5">
+<h3>Training<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h3>
 <blockquote>
 <div><p>To address the training set class imbalance, and to avoid data leakage,
 weights have been applied to the cross entropy loss calculation. The impact
 of loss calculated based on benign labels then is significantly less than
 that of the malignant labels, with a weight of 393/401,059 to malignant’s
 400,666/401,059. Given the very few number of malignant examples, it is
-still expected many epochs will be necessary for good performance. A future
-goal remains to balance the the dataset by duplicating malignant examples.
-Each epoch will be more effective, and it affords the opportunity to
-augment the dataset in other ways like various transformations of the
+still expected many epochs will be necessary for good performance.</p>
+<p>Further, the K-fold training scheme has been revised to create as many
+models to train as their exist folds. However, for this training round in
+particular, a single model is trained, and the dataset is simply split,
+using 80% of it for training and the remaining 20% for validation, ensuring
+a proportional number of classification examples in each split.</p>
+<p>A future goal remains to balance the the dataset by duplicating malignant
+examples. Each epoch will be more effective, and it affords the opportunity
+to augment the dataset in other ways like various transformations of the
 images.</p>
-<p>With Ray:cite:<cite>moritz2018raydistributedframeworkemerging</cite>, hardware
+<p>With Ray <span id="id6">[<a class="reference internal" href="../references.html#id5" title="Philipp Moritz, Robert Nishihara, Stephanie Wang, Alexey Tumanov, Richard Liaw, Eric Liang, Melih Elibol, Zongheng Yang, William Paul, Michael I. Jordan, and Ion Stoica. Ray: a distributed framework for emerging ai applications. 2018. URL: https://arxiv.org/abs/1712.05889, arXiv:1712.05889.">MNW+18</a>]</span>, hardware
 requirements can be defined per training instance. Then, depending on the
 resources made available to the ray server, multiple training instances can
 be run simultaneously, seen below in <a class="reference internal" href="#parallel-training"><span class="std std-numref">Fig. 2</span></a>.
@@ -357,10 +362,10 @@ exploring multiple training configurations, along with the application of
 optimization algorithms. Specifically, for this version, 4 feature reduction
 techniques are explored: none at all, and principal component analysis fit
 to explain 80%, 99%, and 99.99% of data variance.</p>
-<figure class="align-default" id="id8">
-<span id="parallel-training"></span><img alt="models/figures/parallel_training.png" src="models/figures/parallel_training.png" />
+<figure class="align-default" id="id13">
+<span id="parallel-training"></span><img alt="../_images/parallel_training.png" src="../_images/parallel_training.png" />
 <figcaption>
-<p><span class="caption-number">Fig. 2 </span><span class="caption-text">Parallel training enabled by Ray library.</span><a class="headerlink" href="#id8" title="Link to this image">¶</a></p>
+<p><span class="caption-number">Fig. 2 </span><span class="caption-text">Parallel training enabled by Ray library.</span><a class="headerlink" href="#id13" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <p>Each model was trained with only a difference in the dataset feature
@@ -376,50 +381,184 @@ reduction transformation and the following configuration in common:</p>
 <tr class="row-even"><td><p>Epochs</p></td>
 <td><p>20</p></td>
 </tr>
-<tr class="row-odd"><td><p>Learning Rate</p></td>
+<tr class="row-odd"><td><p>Optimizer</p></td>
+<td><p>Adam</p></td>
+</tr>
+<tr class="row-even"><td><p>Learning Rate</p></td>
 <td><p>0.00005</p></td>
-</tr>
-</tbody>
-</table>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>Header row, column 1
-(header rows optional)</p></th>
-<th class="head"><p>Header 2</p></th>
-<th class="head"><p>Header 3</p></th>
-<th class="head"><p>Header 4</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>body row 1, column 1</p></td>
-<td><p>column 2</p></td>
-<td><p>column 3</p></td>
-<td><p>column 4</p></td>
-</tr>
-<tr class="row-odd"><td><p>body row 2</p></td>
-<td><p>…</p></td>
-<td><p>…</p></td>
-<td></td>
 </tr>
 </tbody>
 </table>
 </div></blockquote>
 </div></blockquote>
 </section>
-<section id="id5">
-<h3>Results<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h3>
+<section id="results-pauc-0-109">
+<h3>Results - pAUC: 0.109<a class="headerlink" href="#results-pauc-0-109" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p>Much more promising than the previous version, validation results are now
+much less than perfect, even after 5 times the training iterations. It seems
+the data leakage problems have been addressed. Then, our validation results
+are much more reliable in determining effective models.
+<a class="reference internal" href="#tensorboard"><span class="std std-numref">Fig. 3</span></a> shows our slowly converging loss, true for both the
+training and validation set, meaning learning is occurring and at least some
+generalization of whats being learned can be expected. For this dataset,
+because of the large proportion of benign results, ‘accuracy’ is poorly
+representative of the models capability with respect to correctly
+identifying malignant lesions. So as exciting as the greater than 99%
+accuracy may be, more importantly to this case we track precision and
+recall, focusing on the malignant examples.</p>
+<figure class="align-default" id="id14">
+<span id="tensorboard"></span><img alt="../_images/1.1tensorboard.png" src="../_images/1.1tensorboard.png" />
+<figcaption>
+<p><span class="caption-number">Fig. 3 </span><span class="caption-text">Training results for classifier trained with PCA explaining 99.99%
+(00000), 99% (00001), 80% (00002) variance, and no feature reduction
+(00003).</span><a class="headerlink" href="#id14" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>While no result for recall or precision is great in
+<a class="reference internal" href="#tensorboard"><span class="std std-numref">Fig. 3</span></a>, it is clear that no feature reduction, and PCA
+capturing the most variance at 99.99% perform best. So, these are submitted
+to the kaggle competition to ensure we are on the right track, with a marked
+improvement in pAUC of .100 for the version using PCA, and .109 for the
+version with no feature reduction at all.</p>
+</div></blockquote>
+</section>
+<section id="id7">
+<h3>Lessons Learned<a class="headerlink" href="#id7" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p>Seen in <a class="reference internal" href="#tensorboard"><span class="std std-numref">Fig. 3</span></a>, precision and recall leave a lot to be
+desired, yet it is clear the models are still learning from the continually
+declining loss. Additional epochs will likely be of great use to the models,
+though will cost significant time. A more complex learning rate scheme may
+also be of use, scheduling a decaying rate for instance, enabling aggressive
+learning up front, while still including nuanced learning capability toward
+the end.</p>
+</div></blockquote>
 </section>
 </section>
 <section id="version-1-2">
 <span id="v1-2"></span><h2>Version 1.2<a class="headerlink" href="#version-1-2" title="Link to this heading">¶</a></h2>
 <blockquote>
-<div><p>A vision transformer taking features as query tokens for the decoder. Image and
-features are preprocessed, features are fed to a feature reducer, then all
-combined by a transformer to produce a classification.</p>
+<div><p>Recognizing 2 decoder feature queries as an arbitrary choice, I have
+modified the sequence the decoder receives to be a set of queries, one for
+each feature.</p>
 </div></blockquote>
-<section id="id6">
-<h3>Preprocessing<a class="headerlink" href="#id6" title="Link to this heading">¶</a></h3>
+<section id="id8">
+<h3>Model<a class="headerlink" href="#id8" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p>The feature set, reduced or otherwise, is separated creating
+a vector for each feature where all other features are zero. These vectors
+are then fed to an embedding space, a dense neural network, which first
+linearly projects each vector individually, passes that projection through
+an activation function, then performs another linear projection
+interconnecting the results. This provides the vectors a chance for
+embedding considering only themselves as well as an embedding based on
+relationships. These embedded feature vectors are then passed to the
+decoder. The updated process is visualized in <a class="reference internal" href="#feature-embedding-update"><span class="std std-numref">Fig. 4</span></a>,
+all other elements to the model remain the same.</p>
+<figure class="align-default" id="id15">
+<span id="feature-embedding-update"></span><img alt="../_images/feature_embedding_update.png" src="../_images/feature_embedding_update.png" />
+<figcaption>
+<p><span class="caption-number">Fig. 4 </span><span class="caption-text">Update to feature embedding process, including a mask to allow each
+feature to produce a decoder query.</span><a class="headerlink" href="#id15" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</div></blockquote>
 </section>
+<section id="results-pauc-0-138">
+<h3>Results - pAUC: 0.138<a class="headerlink" href="#results-pauc-0-138" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p><a class="reference internal" href="#feature-embedding-update"><span class="std std-numref">Fig. 4</span></a> shows a the new feature embedding scheme
+much improved, particularly for the model including feature reduction, as
+accuracy, precision, and recall all score higher. For the model without
+feature reduction, precision scores as well as the previous models, lags in
+recall, but seems to do considerably better in accuracy. The final test then
+is a submission to the Kaggle competition, and the model with feature
+reduction scores 0.131, while the model without scores 0.138.</p>
+<figure class="align-default" id="id16">
+<span id="id9"></span><img alt="../_images/1.2tensorboard.png" src="../_images/1.2tensorboard.png" />
+<figcaption>
+<p><span class="caption-number">Fig. 5 </span><span class="caption-text">Training results for classifier trained with old feature embedding
+structure (d9499) and the new structure (91029), coupled with PCA
+explaining 99.99% (00000) and no feature reduction (00003). Results have
+been smoothed for clarity.</span><a class="headerlink" href="#id16" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</div></blockquote>
+</section>
+<section id="id10">
+<h3>Lessons Learned<a class="headerlink" href="#id10" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p>The most obvious lesson is that the metrics currently used still make it
+difficult to discern which model will perform best. Though more complicated,
+a pAUC metric run during validation would be more relevant to the goals of
+this competition.</p>
+<p>Clearly the structure of the embeddings fed to the decoder is important. It
+could be the increased length of the sequence that is more useful, the
+holding features distinct in their embedding before relating them, or a
+mix of both. Since the decoder already serves all kinds of inter-relational
+analysis, it could serve to keep the features separate throughout the
+embedding process, but the current process was chosen to save space.
+An arbitrarily longer sequence could also be generated, which may be
+worthwhile in the current structure where feature inter-relations are
+embedded more than individual, so it could make sense to provide a sequence
+with up to as many vectors as there are combinations of features.</p>
+</div></blockquote>
+</section>
+</section>
+<section id="version-1-3">
+<span id="v1-3"></span><h2>Version 1.3<a class="headerlink" href="#version-1-3" title="Link to this heading">¶</a></h2>
+<blockquote>
+<div><p>To gain better generalization performance, I introduce greater randomization
+in the preprocessing, particularly of the images.</p>
+</div></blockquote>
+<section id="id11">
+<h3>Preprocessing<a class="headerlink" href="#id11" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><div class="twocol docutils container">
+<div class="leftside docutils container">
+<p><strong>Brightness Adjustment</strong> -</p>
+</div>
+<div class="rightside docutils container">
+<img alt="models/figures/brightness_adjustment.png" src="models/figures/brightness_adjustment.png" />
+</div>
+</div>
+<div class="twocol docutils container">
+<div class="leftside docutils container">
+<p><strong>Contrast Adjustment</strong> -</p>
+</div>
+<div class="rightside docutils container">
+<img alt="models/figures/contrast_adjustment.png" src="models/figures/contrast_adjustment.png" />
+</div>
+</div>
+<div class="twocol docutils container">
+<div class="leftside docutils container">
+<p><strong>Flip</strong> -</p>
+</div>
+<div class="rightside docutils container">
+<img alt="models/figures/flip_adjustment.png" src="models/figures/flip_adjustment.png" />
+</div>
+</div>
+</div></blockquote>
+</section>
+<section id="results-pauc-0-126">
+<h3>Results - pAUC: 0.126<a class="headerlink" href="#results-pauc-0-126" title="Link to this heading">¶</a></h3>
+</section>
+</section>
+<section id="version-1-4">
+<h2>Version 1.4<a class="headerlink" href="#version-1-4" title="Link to this heading">¶</a></h2>
+<blockquote>
+<div><p>Greater number  of epochs.</p>
+</div></blockquote>
+<section id="results-pauc-0-149">
+<h3>Results - pAUC: 0.149<a class="headerlink" href="#results-pauc-0-149" title="Link to this heading">¶</a></h3>
+</section>
+</section>
+<section id="version-1-5">
+<h2>Version 1.5<a class="headerlink" href="#version-1-5" title="Link to this heading">¶</a></h2>
+<blockquote>
+<div><p>Cyclical learning rate</p>
+</div></blockquote>
 </section>
 </section>
 
@@ -434,8 +573,8 @@ combined by a transformer to produce a classification.</p>
       &#169;2024, Mark Zimmerman.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.3.7</a>
-      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.0.2</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
       |
       <a href="../_sources/models/models.rst.txt"
