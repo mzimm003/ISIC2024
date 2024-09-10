@@ -154,7 +154,7 @@ class Callback:
     def on_model_select(self, script):
         pass
 
-    def get_epoch_metrics(self, script):
+    def get_epoch_metrics(self):
         pass
 
 class ClassifierTrainingCallback(Callback):

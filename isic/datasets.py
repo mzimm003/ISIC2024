@@ -147,7 +147,7 @@ class DataHandler:
         kwargs = {"input":self.output,
                   "target":self.target}
         if self.aux_output:
-            kwargs["aux_input"] = self.aux_output
+            kwargs["aux_inputs"] = self.aux_output
         loss = criterion(**kwargs)
         self.loss = loss
 
@@ -169,7 +169,7 @@ class DataHandler:
             inp = {k:self.inputs[k] for k in inp}
             if len(inp) > 1:
                 raise NotImplementedError
-            out, = mod(**inp)
+            out, *_ = mod(**inp)
             self.inputs[list(inp.keys())[0]] = out
 
 class SimpleCustomBatch:

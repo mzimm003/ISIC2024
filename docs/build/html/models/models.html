@@ -244,10 +244,10 @@ information.</p></li>
 <section id="model">
 <h3>Model<a class="headerlink" href="#model" title="Link to this heading">¶</a></h3>
 <blockquote>
-<div><figure class="align-default" id="id12">
+<div><figure class="align-default" id="id25">
 <span id="mod-arc"></span><img alt="../_images/model.png" src="../_images/model.png" />
 <figcaption>
-<p><span class="caption-number">Fig. 1 </span><span class="caption-text">Basic flow of model architecture.</span><a class="headerlink" href="#id12" title="Link to this image">¶</a></p>
+<p><span class="caption-number">Fig. 1 </span><span class="caption-text">Basic flow of model architecture.</span><a class="headerlink" href="#id25" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <p><a class="reference internal" href="#mod-arc"><span class="std std-numref">Fig. 1</span></a> shows how the information provided by the ISIC dataset is
@@ -362,10 +362,10 @@ exploring multiple training configurations, along with the application of
 optimization algorithms. Specifically, for this version, 4 feature reduction
 techniques are explored: none at all, and principal component analysis fit
 to explain 80%, 99%, and 99.99% of data variance.</p>
-<figure class="align-default" id="id13">
+<figure class="align-default" id="id26">
 <span id="parallel-training"></span><img alt="../_images/parallel_training.png" src="../_images/parallel_training.png" />
 <figcaption>
-<p><span class="caption-number">Fig. 2 </span><span class="caption-text">Parallel training enabled by Ray library.</span><a class="headerlink" href="#id13" title="Link to this image">¶</a></p>
+<p><span class="caption-number">Fig. 2 </span><span class="caption-text">Parallel training enabled by Ray library.</span><a class="headerlink" href="#id26" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <p>Each model was trained with only a difference in the dataset feature
@@ -407,12 +407,12 @@ representative of the models capability with respect to correctly
 identifying malignant lesions. So as exciting as the greater than 99%
 accuracy may be, more importantly to this case we track precision and
 recall, focusing on the malignant examples.</p>
-<figure class="align-default" id="id14">
+<figure class="align-default" id="id27">
 <span id="tensorboard"></span><img alt="../_images/1.1tensorboard.png" src="../_images/1.1tensorboard.png" />
 <figcaption>
 <p><span class="caption-number">Fig. 3 </span><span class="caption-text">Training results for classifier trained with PCA explaining 99.99%
 (00000), 99% (00001), 80% (00002) variance, and no feature reduction
-(00003).</span><a class="headerlink" href="#id14" title="Link to this image">¶</a></p>
+(00003).</span><a class="headerlink" href="#id27" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <p>While no result for recall or precision is great in
@@ -456,11 +456,11 @@ embedding considering only themselves as well as an embedding based on
 relationships. These embedded feature vectors are then passed to the
 decoder. The updated process is visualized in <a class="reference internal" href="#feature-embedding-update"><span class="std std-numref">Fig. 4</span></a>,
 all other elements to the model remain the same.</p>
-<figure class="align-default" id="id15">
+<figure class="align-default" id="id28">
 <span id="feature-embedding-update"></span><img alt="../_images/feature_embedding_update.png" src="../_images/feature_embedding_update.png" />
 <figcaption>
 <p><span class="caption-number">Fig. 4 </span><span class="caption-text">Update to feature embedding process, including a mask to allow each
-feature to produce a decoder query.</span><a class="headerlink" href="#id15" title="Link to this image">¶</a></p>
+feature to produce a decoder query.</span><a class="headerlink" href="#id28" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 </div></blockquote>
@@ -468,20 +468,20 @@ feature to produce a decoder query.</span><a class="headerlink" href="#id15" tit
 <section id="results-pauc-0-138">
 <h3>Results - pAUC: 0.138<a class="headerlink" href="#results-pauc-0-138" title="Link to this heading">¶</a></h3>
 <blockquote>
-<div><p><a class="reference internal" href="#feature-embedding-update"><span class="std std-numref">Fig. 4</span></a> shows a the new feature embedding scheme
+<div><p><a class="reference internal" href="#id9"><span class="std std-numref">Fig. 5</span></a> shows the new feature embedding scheme
 much improved, particularly for the model including feature reduction, as
 accuracy, precision, and recall all score higher. For the model without
 feature reduction, precision scores as well as the previous models, lags in
 recall, but seems to do considerably better in accuracy. The final test then
 is a submission to the Kaggle competition, and the model with feature
 reduction scores 0.131, while the model without scores 0.138.</p>
-<figure class="align-default" id="id16">
+<figure class="align-default" id="id29">
 <span id="id9"></span><img alt="../_images/1.2tensorboard.png" src="../_images/1.2tensorboard.png" />
 <figcaption>
 <p><span class="caption-number">Fig. 5 </span><span class="caption-text">Training results for classifier trained with old feature embedding
 structure (d9499) and the new structure (91029), coupled with PCA
 explaining 99.99% (00000) and no feature reduction (00003). Results have
-been smoothed for clarity.</span><a class="headerlink" href="#id16" title="Link to this image">¶</a></p>
+been smoothed for clarity.</span><a class="headerlink" href="#id29" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 </div></blockquote>
@@ -548,26 +548,311 @@ vertical axis, or both.</p>
 <img alt="../_images/flip_adjustment.png" src="../_images/flip_adjustment.png" />
 </div>
 </div>
+<p>In training, contrast adjustments apply a random multiplier between 0.5 and
+2. Brightness adjustments are a random value between -50 and 50.</p>
 </div></blockquote>
 </section>
 <section id="results-pauc-0-126">
 <h3>Results - pAUC: 0.126<a class="headerlink" href="#results-pauc-0-126" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p><a class="reference internal" href="#id12"><span class="std std-numref">Fig. 6</span></a> shows a significant hit to accuracy. This could
+be due to the extreme values applied in brightness and contrast adjustments.
+Recall seems to be flipped, much improved, but given the accuracy results,
+and recall’s steady decrease as training continues, more than anything
+the additional preprocessing seems to encourage excessive false positives.
+When submitted to Kaggle, the model with feature reduction scores 0.083,
+while the model without scores 0.126.</p>
+<figure class="align-default" id="id30">
+<span id="id12"></span><img alt="../_images/1.3tensorboard.png" src="../_images/1.3tensorboard.png" />
+<figcaption>
+<p><span class="caption-number">Fig. 6 </span><span class="caption-text">Training results for classifier trained with additional preprocessing
+methods relative to the previous version. 4e72c is the new experiment
+results, with 00000 using the feature reducer and 00001 not. Results
+have been smoothed for clarity.</span><a class="headerlink" href="#id30" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</div></blockquote>
+</section>
+<section id="id13">
+<h3>Lessons Learned<a class="headerlink" href="#id13" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p>While the additional preprocessing may improve generalization in theory,
+it does so by creating a more confusing dataset. Then, for the model to
+overcome the confusion, training must be made more efficient, or extended
+at the least.</p>
+</div></blockquote>
 </section>
 </section>
 <section id="version-1-4">
-<h2>Version 1.4<a class="headerlink" href="#version-1-4" title="Link to this heading">¶</a></h2>
+<span id="v1-4"></span><h2>Version 1.4<a class="headerlink" href="#version-1-4" title="Link to this heading">¶</a></h2>
 <blockquote>
-<div><p>Greater number  of epochs.</p>
+<div><p>To accommodate the confusion introduced by the random preprocessing
+techniques, the same model will be run for a greater number of epochs.
+Previously, trainings lasted for 20 epochs, so this will be run for 100.</p>
 </div></blockquote>
 <section id="results-pauc-0-149">
 <h3>Results - pAUC: 0.149<a class="headerlink" href="#results-pauc-0-149" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p>After 20 epochs, nearing convergence in loss, <a class="reference internal" href="#id14"><span class="std std-numref">Fig. 7</span></a> shows
+an additional drop and continued learning, throughout the 100 epochs. Then,
+the extended learning session for the randomized data inputs was worthwhile.
+That said, most metrics appear similar to the previous iteration, with a
+small improvement in accuracy. Since the validation set contains mostly
+benign examples, even a small change in accuracy should represent a
+significant reduction in false positives.</p>
+<p>When submitted to Kaggle, the model with feature reduction scores 0.127,
+while the model without scores 0.149.</p>
+<figure class="align-default" id="id31">
+<span id="id14"></span><img alt="../_images/1.4tensorboard.png" src="../_images/1.4tensorboard.png" />
+<figcaption>
+<p><span class="caption-number">Fig. 7 </span><span class="caption-text">Training results for classifier trained for 100 epochs. Model 0 is using
+the feature reducer and model 1 is not. Results have been smoothed for
+clarity.</span><a class="headerlink" href="#id31" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</div></blockquote>
+</section>
+<section id="id15">
+<h3>Lessons Learned<a class="headerlink" href="#id15" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p>Again, it is difficult to decipher results without a specific measure for
+pAUC. Further, while the longer training time does come with improvement,
+it also comes at great cost. A more efficient training method should be
+explored.</p>
+</div></blockquote>
 </section>
 </section>
 <section id="version-1-5">
-<h2>Version 1.5<a class="headerlink" href="#version-1-5" title="Link to this heading">¶</a></h2>
+<span id="v1-5"></span><h2>Version 1.5<a class="headerlink" href="#version-1-5" title="Link to this heading">¶</a></h2>
 <blockquote>
-<div><p>Cyclical learning rate</p>
+<div><p>In an attempt to create a more efficient training cycle, I will utilize a
+cyclical learning rate. <span id="id16">Smith [<a class="reference internal" href="../references.html#id6" title="Leslie N. Smith. Cyclical learning rates for training neural networks. 2017. URL: https://arxiv.org/abs/1506.01186, arXiv:1506.01186.">Smi17</a>]</span>
+provides a study of the idea with encouraging results. Training tended to
+be slightly improved by metric, and this result should be achieved with
+fewer epochs.</p>
+<p>To start, <span id="id17">Smith [<a class="reference internal" href="../references.html#id6" title="Leslie N. Smith. Cyclical learning rates for training neural networks. 2017. URL: https://arxiv.org/abs/1506.01186, arXiv:1506.01186.">Smi17</a>]</span> suggests a dry
+run using a slowly increasing learning rate. Then, noting when learning
+takes place, i.e. metrics are quickly improved, and when it ceases, i.e.
+metrics become unstable, provides an ideal range for the cycle.</p>
+<p>The process is shown in <a class="reference internal" href="#tensorboard-lrcycle"><span class="std std-numref">Fig. 8</span></a> below. To ensure
+confidence in explicit ability of the models pAUC has also been introduced
+as a metric. Then, considering pAUC, learning for model 0 seems to start
+immediately and become unstable sometime before epoch 4. Model 1 on the
+other hand starts learning about epoch 3 and becomes unstable before epoch
+7. So, the learning rates chosen range from [1.0e-6, 3.0e-5] for model 0,
+and from [2.5e-5, 5.0e-5] for model 1.</p>
+<figure class="align-default" id="id32">
+<span id="tensorboard-lrcycle"></span><img alt="../_images/1.5tensorboard_lrcycle.png" src="../_images/1.5tensorboard_lrcycle.png" />
+<figcaption>
+<p><span class="caption-number">Fig. 8 </span><span class="caption-text">Training dry run. Model 0 is using the feature reducer and model 1 is
+not. Learning rate is changed throughout training but not during
+validation.</span><a class="headerlink" href="#id32" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
 </div></blockquote>
+<section id="results-pauc-0-145">
+<h3>Results - pAUC: 0.145<a class="headerlink" href="#results-pauc-0-145" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p>Interestingly, the cyclic learning rate seems to save an initially unstable
+training, perhaps saving the model from a poor local minima as the learning
+rate grows. This is seen in <a class="reference internal" href="#id19"><span class="std std-numref">Fig. 9</span></a> where accuracy is
+measured at 0 until a drastic shift in the loss trend about epoch 9. That
+said, it does not appear the cycle has helped the models learn more quickly,
+nor achieve a better result overall. The learning pace may be due to the
+random preprocessing of data, now coupled with a random learning rate as
+batches of data could be drawn in any order. This is a less deterministic
+training pipeline than presented in the <span id="id18">Smith [<a class="reference internal" href="../references.html#id6" title="Leslie N. Smith. Cyclical learning rates for training neural networks. 2017. URL: https://arxiv.org/abs/1506.01186, arXiv:1506.01186.">Smi17</a>]</span>
+paper. Additionally, while they showed improved results in a cyclical
+learning rate of a static learning rate, the improvement was marginal,
+and likely thwarted by the random training pipeline.</p>
+<p>When submitted to Kaggle, the model with feature reduction scores 0.135,
+while the model without scores 0.145.</p>
+<figure class="align-default" id="id33">
+<span id="id19"></span><img alt="../_images/1.5tensorboard.png" src="../_images/1.5tensorboard.png" />
+<figcaption>
+<p><span class="caption-number">Fig. 9 </span><span class="caption-text">Training results for classifier using a cyclic learning rate. Model 0
+is using the feature reducer and model 1 is not.</span><a class="headerlink" href="#id33" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</div></blockquote>
+</section>
+<section id="id20">
+<h3>Lessons Learned<a class="headerlink" href="#id20" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p>Given how rare the malignant examples remain, it is important to get the
+learning rate range and size of the cycle period right. This is something
+that may not be so straightforward with the introduction of random
+preprocessing in the training pipeline. Moreover, it may be inappropriate
+to use a cyclic learning rate with an unbalanced dataset as it is difficult
+to ensure the sparser labels receive similar attention to the data set in
+general. In the worst case, the sparse labels are only presented ever at
+lower learning rates, causing little learning despite the weight in the
+loss calculation. This may be offset by a longer cycle period, spanning
+several epochs.</p>
+</div></blockquote>
+</section>
+</section>
+<section id="version-1-6">
+<span id="v1-6"></span><h2>Version 1.6<a class="headerlink" href="#version-1-6" title="Link to this heading">¶</a></h2>
+<blockquote>
+<div><p>Finally, in an effort to better incorporate loss throughout the model,
+ensuring propagation of loss values and steering the model toward its
+ultimate goal of malignancy classification, I introduce intermediate
+classification/loss based on each layer of the decoder.</p>
+<p>For each layer of the decoder, a shared fully connected neural network takes
+its output to decide how the model would classify the data point so far. A
+loss is calculated and used along with the other auxiliary losses and the
+final classification’s loss to determine how to adjust the parameters of the
+model. The losses are added, and the loss gradients with respect to each
+parameter is calculated as usual.</p>
+<p>Since the success of the cycled learning rate in this case is undetermined,
+I will train with this new loss scheme both with a static and cyclical
+learning rate. The static learning rate will be 5.0e-5 and the range for
+the cycle will be [1.0e-7, 2.5e-5], determined as before by the process
+shown in <a class="reference internal" href="#id21"><span class="std std-numref">Fig. 10</span></a>.</p>
+<figure class="align-default" id="id34">
+<span id="id21"></span><img alt="../_images/1.6tensorboard_lrcycle.png" src="../_images/1.6tensorboard_lrcycle.png" />
+<figcaption>
+<p><span class="caption-number">Fig. 10 </span><span class="caption-text">Training dry run. Model 0 is using the feature reducer and model 1 is
+not. Learning rate is changed throughout training but not during
+validation.</span><a class="headerlink" href="#id34" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</div></blockquote>
+<section id="results-pauc-0-146">
+<h3>Results - pAUC: 0.146<a class="headerlink" href="#results-pauc-0-146" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p>Locally, results seemed promising, with the static learning rate, no feature
+reduction model performing well above 0.15 pAUC. However the remaining
+models did not fair as well and performed more similarly to what’s already
+been seen. To that end, this could be a fluke, where the model is not
+actually well generalized, but happens to fit the validation set well. This
+is all but confirmed by its submission to Kaggle.</p>
+<p>When submitted to Kaggle, the model with feature reduction scores 0.131,
+while the model without scores 0.146.</p>
+<figure class="align-default" id="id35">
+<span id="id22"></span><img alt="../_images/1.6tensorboard.png" src="../_images/1.6tensorboard.png" />
+<figcaption>
+<p><span class="caption-number">Fig. 11 </span><span class="caption-text">Training results for classifier with auxiliary loss scheme. Model 0
+(with feature reduction) and 1 (without feature reduction) are using a
+static learning rate. Model 2 (with feature reduction) and 3 (without
+feature reduction) are using a cyclical learning rate.</span><a class="headerlink" href="#id35" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</div></blockquote>
+</section>
+<section id="id23">
+<h3>Lessons Learned<a class="headerlink" href="#id23" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p>Despite an excellent measured training performance, testing revealed no
+improvement at all. It is clear then why techniques like K-fold are so
+invaluable. As much as it takes more time and computing power, the
+additional folds will really help determine a consistently well generalizing
+model from one that gets lucky. Something very important to be confident in
+prior to production.</p>
+</div></blockquote>
+</section>
+</section>
+<section id="final-results">
+<h2>Final Results<a class="headerlink" href="#final-results" title="Link to this heading">¶</a></h2>
+<blockquote>
+<div><p>With the close of the competition, scoring has been updated to include the
+complete testing dataset. Initial scores were based only on 28% of the
+testing dataset. Here are the updated results.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head" colspan="4"><p>Kaggle Score</p></th>
+</tr>
+<tr class="row-even"><th class="head"></th>
+<th class="head" colspan="2"><p>Initial</p></th>
+<th class="head" colspan="2"><p>Final</p></th>
+</tr>
+<tr class="row-odd"><th class="head"><p>Version</p></th>
+<th class="head"><p>Fet Red</p></th>
+<th class="head"><p>No Fet Red</p></th>
+<th class="head"><p>Fet Red</p></th>
+<th class="head"><p>No Fet Red</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#v1-0"><span class="std std-ref">Version 1.0</span></a></p></td>
+<td><p>0.021</p></td>
+<td><p>0.021</p></td>
+<td><p>0.022</p></td>
+<td><p>0.022</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#v1-1"><span class="std std-ref">Version 1.1</span></a></p></td>
+<td><p>0.100</p></td>
+<td><p>0.109</p></td>
+<td><p>0.097</p></td>
+<td><p>0.103</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#v1-2"><span class="std std-ref">Version 1.2</span></a></p></td>
+<td><p>0.131</p></td>
+<td><p>0.138</p></td>
+<td><p>0.110</p></td>
+<td><p>0.121</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#v1-3"><span class="std std-ref">Version 1.3</span></a></p></td>
+<td><p>0.087</p></td>
+<td><p>0.130</p></td>
+<td><p>0.096</p></td>
+<td><p>0.101</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#v1-4"><span class="std std-ref">Version 1.4</span></a></p></td>
+<td><p>0.127</p></td>
+<td><p><strong>0.149</strong></p></td>
+<td><p>0.106</p></td>
+<td><p>0.122</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#v1-5"><span class="std std-ref">Version 1.5</span></a></p></td>
+<td><p>0.135</p></td>
+<td><p>0.145</p></td>
+<td><p>0.117</p></td>
+<td><p><strong>0.126</strong></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#v1-6"><span class="std std-ref">Version 1.6</span></a></p></td>
+<td><p>0.131</p></td>
+<td><p>0.146</p></td>
+<td><p>0.111</p></td>
+<td><p>0.125</p></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<div><p class="center"><em>All scores for Feature Reduction based models refer to a PCA
+transformation explaining 99.99% of variance.</em></p>
+</div></blockquote>
+</div></blockquote>
+<section id="id24">
+<h3>Lessons learned<a class="headerlink" href="#id24" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p>Many of my initial scores were much higher than the final score,
+demonstrating some overfit to the initial test set. There was nothing in
+particular I implemented that sought to fit the test set, but it is possible
+the initial test set is more similar to the training data than the remaining
+test set. For that, it would be necessary to pursue further means of
+supplementing the training set, similar to the random preprocessing done.
+Possibly there exist other similar training sets which could be used to
+expand what I have available. Even if only images are available, it could
+be useful to train part of the model.</p>
+<p>With a goal of clearing 0.15 pAUC, I came close, until the remainder of the
+test set was released. I am pleased with the improvements made, though some
+were more effective than others. Each was relevant to shaping how I thought
+about this problem and better informed the next iteration. One thing I
+believe held back my models’ performance is the fact that it was trained
+from scratch each time. In the future I would like to fine tune a
+pre-trained classification model, or other image based model, already
+familiar with the features in an image. Other competitors also had similar
+yet distinct ideas on how to combine the feature and image data, which I
+found interesting and would like to explore. For example, one ViT based
+model would train strictly on the image, then the result of the ViT’s
+classification would be included in the feature set for the remainder of the
+model to produce the final classification. In all, there are many ways to
+tackle this problem and it was an exciting competition to be a part of.</p>
+</div></blockquote>
+</section>
 </section>
 </section>
 

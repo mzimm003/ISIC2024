@@ -10,3 +10,4 @@ report_dynamo_export.sarif
 test.py
 /build/
 /dist/
+separate_exp_models.py

@@ -66,7 +66,6 @@ Images
 
             .. image:: figures/cropping.png
 
-
 Features
 ^^^^^^^^^^^
     .. container:: twocol
@@ -355,7 +354,7 @@ Model
 
 Results - pAUC: 0.138
 ^^^^^^^^^^^^^^^^^^^^^^^^
-    :numref:`feature_embedding_update` shows a the new feature embedding scheme
+    :numref:`1.2tensorboard` shows the new feature embedding scheme
     much improved, particularly for the model including feature reduction, as 
     accuracy, precision, and recall all score higher. For the model without
     feature reduction, precision scores as well as the previous models, lags in
@@ -438,21 +437,251 @@ Preprocessing
 
             .. image:: figures/flip_adjustment.png
 
+    In training, contrast adjustments apply a random multiplier between 0.5 and
+    2. Brightness adjustments are a random value between -50 and 50.
 
 Results - pAUC: 0.126
 ^^^^^^^^^^^^^^^^^^^^^^^^
+    :numref:`1.3tensorboard` shows a significant hit to accuracy. This could
+    be due to the extreme values applied in brightness and contrast adjustments.
+    Recall seems to be flipped, much improved, but given the accuracy results,
+    and recall's steady decrease as training continues, more than anything
+    the additional preprocessing seems to encourage excessive false positives.
+    When submitted to Kaggle, the model with feature reduction scores 0.083,
+    while the model without scores 0.126.
+
+    .. _1.3tensorboard:
+    .. figure:: figures/1.3tensorboard.png
+
+        Training results for classifier trained with additional preprocessing
+        methods relative to the previous version. 4e72c is the new experiment
+        results, with 00000 using the feature reducer and 00001 not. Results
+        have been smoothed for clarity.
+
+Lessons Learned
+^^^^^^^^^^^^^^^^
+    While the additional preprocessing may improve generalization in theory,
+    it does so by creating a more confusing dataset. Then, for the model to
+    overcome the confusion, training must be made more efficient, or extended
+    at the least.
+
+.. _V1.4:
 
 Version 1.4
 -----------
-    Greater number  of epochs.
+    To accommodate the confusion introduced by the random preprocessing 
+    techniques, the same model will be run for a greater number of epochs.
+    Previously, trainings lasted for 20 epochs, so this will be run for 100.
 
 Results - pAUC: 0.149
 ^^^^^^^^^^^^^^^^^^^^^^^^
+    After 20 epochs, nearing convergence in loss, :numref:`1.4tensorboard` shows
+    an additional drop and continued learning, throughout the 100 epochs. Then,
+    the extended learning session for the randomized data inputs was worthwhile.
+    That said, most metrics appear similar to the previous iteration, with a
+    small improvement in accuracy. Since the validation set contains mostly
+    benign examples, even a small change in accuracy should represent a
+    significant reduction in false positives. 
+    
+    When submitted to Kaggle, the model with feature reduction scores 0.127,
+    while the model without scores 0.149.
+
+    .. _1.4tensorboard:
+    .. figure:: figures/1.4tensorboard.png
+
+        Training results for classifier trained for 100 epochs. Model 0 is using
+        the feature reducer and model 1 is not. Results have been smoothed for
+        clarity.
+
+Lessons Learned
+^^^^^^^^^^^^^^^^^^
+    Again, it is difficult to decipher results without a specific measure for
+    pAUC. Further, while the longer training time does come with improvement,
+    it also comes at great cost. A more efficient training method should be
+    explored.
+
+.. _V1.5:
 
 Version 1.5
 -----------
-    Cyclical learning rate
+    In an attempt to create a more efficient training cycle, I will utilize a
+    cyclical learning rate. :cite:t:`smith2017cyclicallearningratestraining`
+    provides a study of the idea with encouraging results. Training tended to
+    be slightly improved by metric, and this result should be achieved with
+    fewer epochs.
+
+    To start, :cite:t:`smith2017cyclicallearningratestraining` suggests a dry 
+    run using a slowly increasing learning rate. Then, noting when learning
+    takes place, i.e. metrics are quickly improved, and when it ceases, i.e.
+    metrics become unstable, provides an ideal range for the cycle.
+    
+    The process is shown in :numref:`1.5tensorboard_lrcycle` below. To ensure
+    confidence in explicit ability of the models pAUC has also been introduced
+    as a metric. Then, considering pAUC, learning for model 0 seems to start
+    immediately and become unstable sometime before epoch 4. Model 1 on the
+    other hand starts learning about epoch 3 and becomes unstable before epoch
+    7. So, the learning rates chosen range from [1.0e-6, 3.0e-5] for model 0,
+    and from [2.5e-5, 5.0e-5] for model 1.
+
+    .. _1.5tensorboard_lrcycle:
+    .. figure:: figures/1.5tensorboard_lrcycle.png
+
+        Training dry run. Model 0 is using the feature reducer and model 1 is
+        not. Learning rate is changed throughout training but not during
+        validation.
+
+Results - pAUC: 0.145
+^^^^^^^^^^^^^^^^^^^^^^^^
+    Interestingly, the cyclic learning rate seems to save an initially unstable
+    training, perhaps saving the model from a poor local minima as the learning
+    rate grows. This is seen in :numref:`1.5tensorboard` where accuracy is
+    measured at 0 until a drastic shift in the loss trend about epoch 9. That
+    said, it does not appear the cycle has helped the models learn more quickly,
+    nor achieve a better result overall. The learning pace may be due to the
+    random preprocessing of data, now coupled with a random learning rate as
+    batches of data could be drawn in any order. This is a less deterministic
+    training pipeline than presented in the :cite:t:`smith2017cyclicallearningratestraining`
+    paper. Additionally, while they showed improved results in a cyclical
+    learning rate of a static learning rate, the improvement was marginal,
+    and likely thwarted by the random training pipeline.
+    
+    When submitted to Kaggle, the model with feature reduction scores 0.135,
+    while the model without scores 0.145.
+
+    .. _1.5tensorboard:
+    .. figure:: figures/1.5tensorboard.png
+
+        Training results for classifier using a cyclic learning rate. Model 0
+        is using the feature reducer and model 1 is not.
+
+Lessons Learned
+^^^^^^^^^^^^^^^^^
+    Given how rare the malignant examples remain, it is important to get the
+    learning rate range and size of the cycle period right. This is something
+    that may not be so straightforward with the introduction of random
+    preprocessing in the training pipeline. Moreover, it may be inappropriate
+    to use a cyclic learning rate with an unbalanced dataset as it is difficult
+    to ensure the sparser labels receive similar attention to the data set in
+    general. In the worst case, the sparse labels are only presented ever at
+    lower learning rates, causing little learning despite the weight in the
+    loss calculation. This may be offset by a longer cycle period, spanning
+    several epochs.
+
+.. _V1.6:
 
 Version 1.6
 -----------
-    Intermediate classification/loss based on encoder only.
+    Finally, in an effort to better incorporate loss throughout the model,
+    ensuring propagation of loss values and steering the model toward its
+    ultimate goal of malignancy classification, I introduce intermediate
+    classification/loss based on each layer of the decoder.
+
+    For each layer of the decoder, a shared fully connected neural network takes
+    its output to decide how the model would classify the data point so far. A
+    loss is calculated and used along with the other auxiliary losses and the
+    final classification's loss to determine how to adjust the parameters of the
+    model. The losses are added, and the loss gradients with respect to each
+    parameter is calculated as usual.
+
+    Since the success of the cycled learning rate in this case is undetermined,
+    I will train with this new loss scheme both with a static and cyclical
+    learning rate. The static learning rate will be 5.0e-5 and the range for
+    the cycle will be [1.0e-7, 2.5e-5], determined as before by the process
+    shown in :numref:`1.6tensorboard_lrcycle`.
+
+    .. _1.6tensorboard_lrcycle:
+    .. figure:: figures/1.6tensorboard_lrcycle.png
+
+        Training dry run. Model 0 is using the feature reducer and model 1 is
+        not. Learning rate is changed throughout training but not during
+        validation.
+
+Results - pAUC: 0.146
+^^^^^^^^^^^^^^^^^^^^^^^^
+    Locally, results seemed promising, with the static learning rate, no feature
+    reduction model performing well above 0.15 pAUC. However the remaining
+    models did not fair as well and performed more similarly to what's already
+    been seen. To that end, this could be a fluke, where the model is not
+    actually well generalized, but happens to fit the validation set well. This
+    is all but confirmed by its submission to Kaggle.
+    
+    When submitted to Kaggle, the model with feature reduction scores 0.131,
+    while the model without scores 0.146.
+
+    .. _1.6tensorboard:
+    .. figure:: figures/1.6tensorboard.png
+
+        Training results for classifier with auxiliary loss scheme. Model 0
+        (with feature reduction) and 1 (without feature reduction) are using a
+        static learning rate. Model 2 (with feature reduction) and 3 (without
+        feature reduction) are using a cyclical learning rate.
+
+Lessons Learned
+^^^^^^^^^^^^^^^^^
+    Despite an excellent measured training performance, testing revealed no
+    improvement at all. It is clear then why techniques like K-fold are so
+    invaluable. As much as it takes more time and computing power, the
+    additional folds will really help determine a consistently well generalizing
+    model from one that gets lucky. Something very important to be confident in
+    prior to production.
+
+Final Results
+----------------
+    With the close of the competition, scoring has been updated to include the
+    complete testing dataset. Initial scores were based only on 28% of the
+    testing dataset. Here are the updated results.
+
+    +-------------------+------------+------------+-----------+------------+
+    |                   | Kaggle Score                                     |
+    +-------------------+------------+------------+-----------+------------+
+    |                   | Initial                 | Final                  |
+    +-------------------+------------+------------+-----------+------------+
+    | Version           | Fet Red    | No Fet Red | Fet Red   | No Fet Red |
+    +===================+============+============+===========+============+
+    | :ref:`V1.0`       | 0.021      | 0.021      | 0.022     | 0.022      |
+    +-------------------+------------+------------+-----------+------------+
+    | :ref:`V1.1`       | 0.100      | 0.109      | 0.097     | 0.103      |
+    +-------------------+------------+------------+-----------+------------+
+    | :ref:`V1.2`       | 0.131      | 0.138      | 0.110     | 0.121      |
+    +-------------------+------------+------------+-----------+------------+
+    | :ref:`V1.3`       | 0.087      | 0.130      | 0.096     | 0.101      |
+    +-------------------+------------+------------+-----------+------------+
+    | :ref:`V1.4`       | 0.127      | **0.149**  | 0.106     | 0.122      |
+    +-------------------+------------+------------+-----------+------------+
+    | :ref:`V1.5`       | 0.135      | 0.145      | 0.117     | **0.126**  |
+    +-------------------+------------+------------+-----------+------------+
+    | :ref:`V1.6`       | 0.131      | 0.146      | 0.111     | 0.125      |
+    +-------------------+------------+------------+-----------+------------+
+
+        .. rst-class:: center
+
+            *All scores for Feature Reduction based models refer to a PCA
+            transformation explaining 99.99% of variance.*
+
+Lessons learned
+^^^^^^^^^^^^^^^^^
+    Many of my initial scores were much higher than the final score,
+    demonstrating some overfit to the initial test set. There was nothing in
+    particular I implemented that sought to fit the test set, but it is possible
+    the initial test set is more similar to the training data than the remaining
+    test set. For that, it would be necessary to pursue further means of
+    supplementing the training set, similar to the random preprocessing done.
+    Possibly there exist other similar training sets which could be used to
+    expand what I have available. Even if only images are available, it could
+    be useful to train part of the model.
+
+    With a goal of clearing 0.15 pAUC, I came close, until the remainder of the
+    test set was released. I am pleased with the improvements made, though some
+    were more effective than others. Each was relevant to shaping how I thought
+    about this problem and better informed the next iteration. One thing I
+    believe held back my models' performance is the fact that it was trained
+    from scratch each time. In the future I would like to fine tune a
+    pre-trained classification model, or other image based model, already
+    familiar with the features in an image. Other competitors also had similar
+    yet distinct ideas on how to combine the feature and image data, which I
+    found interesting and would like to explore. For example, one ViT based
+    model would train strictly on the image, then the result of the ViT's
+    classification would be included in the feature set for the remainder of the
+    model to produce the final classification. In all, there are many ways to
+    tackle this problem and it was an exciting competition to be a part of.
+

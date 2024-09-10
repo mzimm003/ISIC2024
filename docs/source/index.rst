@@ -23,11 +23,35 @@ photos (TBP). :cite:`isic-2024-challenge`
 Latest
 --------
 
-Model version 1 - A transformer which makes use of both the images and features
-provided in the ISIC dataset. It is coupled with unsupervised learning to reduce
-the feature set to the most informative, then uses the features to query the 
-image to gain a classification.
+With the close of the competition, scoring has been updated to include the
+complete testing dataset. Initial scores were based only on 28% of the
+testing dataset. Here are the updated results.
 
-Read more :ref:`here<V1.0>`.
+Click on any version to learn more about it.
 
-.. image:: models/figures/model.png
++-------------------+------------+------------+-----------+------------+
+|                   | Kaggle Score                                     |
++-------------------+------------+------------+-----------+------------+
+|                   | Initial                 | Final                  |
++-------------------+------------+------------+-----------+------------+
+| Version           | Fet Red    | No Fet Red | Fet Red   | No Fet Red |
++===================+============+============+===========+============+
+| :ref:`V1.0`       | 0.021      | 0.021      | 0.022     | 0.022      |
++-------------------+------------+------------+-----------+------------+
+| :ref:`V1.1`       | 0.100      | 0.109      | 0.097     | 0.103      |
++-------------------+------------+------------+-----------+------------+
+| :ref:`V1.2`       | 0.131      | 0.138      | 0.110     | 0.121      |
++-------------------+------------+------------+-----------+------------+
+| :ref:`V1.3`       | 0.087      | 0.130      | 0.096     | 0.101      |
++-------------------+------------+------------+-----------+------------+
+| :ref:`V1.4`       | 0.127      | **0.149**  | 0.106     | 0.122      |
++-------------------+------------+------------+-----------+------------+
+| :ref:`V1.5`       | 0.135      | 0.145      | 0.117     | **0.126**  |
++-------------------+------------+------------+-----------+------------+
+| :ref:`V1.6`       | 0.131      | 0.146      | 0.111     | 0.125      |
++-------------------+------------+------------+-----------+------------+
+
+   .. rst-class:: center
+
+      *All scores for Feature Reduction based models refer to a PCA
+      transformation explaining 99.99% of variance.*

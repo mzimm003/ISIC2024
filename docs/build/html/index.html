@@ -113,12 +113,75 @@ confirmed skin cancer cases with single-lesion crops from 3D total body
 photos (TBP). <span id="id1">[<a class="reference internal" href="references.html#id3" title="Nicholas Kurtansky, Veronica Rotemberg, Maura Gillis, Kivanc Kose, Walter Reade, and Ashley Chow. Isic 2024 - skin cancer detection with 3d-tbp. 2024. URL: https://kaggle.com/competitions/isic-2024-challenge.">KRG+24</a>]</span></p>
 <section id="latest">
 <h2>Latest<a class="headerlink" href="#latest" title="Link to this heading">¶</a></h2>
-<p>Model version 1 - A transformer which makes use of both the images and features
-provided in the ISIC dataset. It is coupled with unsupervised learning to reduce
-the feature set to the most informative, then uses the features to query the
-image to gain a classification.</p>
-<p>Read more <a class="reference internal" href="models/models.html#v1-0"><span class="std std-ref">here</span></a>.</p>
-<img alt="_images/model.png" src="_images/model.png" />
+<p>With the close of the competition, scoring has been updated to include the
+complete testing dataset. Initial scores were based only on 28% of the
+testing dataset. Here are the updated results.</p>
+<p>Click on any version to learn more about it.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head" colspan="4"><p>Kaggle Score</p></th>
+</tr>
+<tr class="row-even"><th class="head"></th>
+<th class="head" colspan="2"><p>Initial</p></th>
+<th class="head" colspan="2"><p>Final</p></th>
+</tr>
+<tr class="row-odd"><th class="head"><p>Version</p></th>
+<th class="head"><p>Fet Red</p></th>
+<th class="head"><p>No Fet Red</p></th>
+<th class="head"><p>Fet Red</p></th>
+<th class="head"><p>No Fet Red</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="models/models.html#v1-0"><span class="std std-ref">Version 1.0</span></a></p></td>
+<td><p>0.021</p></td>
+<td><p>0.021</p></td>
+<td><p>0.022</p></td>
+<td><p>0.022</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="models/models.html#v1-1"><span class="std std-ref">Version 1.1</span></a></p></td>
+<td><p>0.100</p></td>
+<td><p>0.109</p></td>
+<td><p>0.097</p></td>
+<td><p>0.103</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="models/models.html#v1-2"><span class="std std-ref">Version 1.2</span></a></p></td>
+<td><p>0.131</p></td>
+<td><p>0.138</p></td>
+<td><p>0.110</p></td>
+<td><p>0.121</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="models/models.html#v1-3"><span class="std std-ref">Version 1.3</span></a></p></td>
+<td><p>0.087</p></td>
+<td><p>0.130</p></td>
+<td><p>0.096</p></td>
+<td><p>0.101</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="models/models.html#v1-4"><span class="std std-ref">Version 1.4</span></a></p></td>
+<td><p>0.127</p></td>
+<td><p><strong>0.149</strong></p></td>
+<td><p>0.106</p></td>
+<td><p>0.122</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="models/models.html#v1-5"><span class="std std-ref">Version 1.5</span></a></p></td>
+<td><p>0.135</p></td>
+<td><p>0.145</p></td>
+<td><p>0.117</p></td>
+<td><p><strong>0.126</strong></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="models/models.html#v1-6"><span class="std std-ref">Version 1.6</span></a></p></td>
+<td><p>0.131</p></td>
+<td><p>0.146</p></td>
+<td><p>0.111</p></td>
+<td><p>0.125</p></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<div><p class="center"><em>All scores for Feature Reduction based models refer to a PCA
+transformation explaining 99.99% of variance.</em></p>
+</div></blockquote>
 </section>
 </section>
 

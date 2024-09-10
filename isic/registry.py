@@ -58,12 +58,25 @@ class Registry(Enum):
                 "tensor(float)":torch.float32,
                 "tensor(float16)":torch.float16
             }
-            def __init__(slf) -> None:
+            def __init__(slf, load_path=load_path) -> None:
+                slf.load_path = load_path
+                slf.model = onnxruntime.InferenceSession(slf.load_path, providers = [
+                    'CUDAExecutionProvider',
+                    'CPUExecutionProvider',
+                    ] if cuda else ['CPUExecutionProvider'])
+                slf.binding = slf.model.io_binding()
+
+            def __getstate__(slf):
+                return {'load_path': slf.load_path}
+
+            def __setstate__(slf, values):
+                slf.load_path = values['load_path']
                 slf.model = onnxruntime.InferenceSession(load_path, providers = [
                     'CUDAExecutionProvider',
                     'CPUExecutionProvider',
                     ] if cuda else ['CPUExecutionProvider'])
                 slf.binding = slf.model.io_binding()
+
             def __call__(slf, *args: Any, **kwds:torch.Tensor) -> Any:
                 # Assume positional args are fed for expected keywords
                 if not kwds and args:
@@ -149,18 +162,22 @@ class LRSchedulerReg(Registry):
         return super().initialize(obj, kwargs)
 
 
-class ClassifierLoss(nn.Module):
-    def __init__(self, classification_criterion=None, *args, **kwargs) -> None:
+class ClassifierLoss(nn.CrossEntropyLoss):
+    def __init__(self, main_weight=0.5, aux_weight=0.5,*args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.classification_criterion = (
-            classification_criterion
-            if not classification_criterion is None
-            else nn.CrossEntropyLoss())
-            
-    def forward(self, input, aux_input, target):
-        main_loss = self.classification_criterion(input, target)
-        aux_loss = self.classification_criterion(aux_input, target)
-        return main_loss + aux_loss
+        self.main_weight = main_weight
+        self.aux_weight = aux_weight
+
+    def forward(
+            self,
+            input: torch.Tensor,
+            aux_inputs: list[torch.Tensor],
+            target: torch.Tensor) -> torch.Tensor:
+        main_loss = super().forward(input, target)
+        aux_loss = 0
+        for aux_inp in aux_inputs:
+            aux_loss += super().forward(aux_inp, target)
+        return main_loss*self.main_weight + aux_loss*self.aux_weight
 
 class CriterionReg(Registry):
     MSE = nn.MSELoss

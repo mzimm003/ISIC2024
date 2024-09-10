@@ -29,6 +29,7 @@ from typing import (
     Type,
     Callable
 )
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing_extensions import override
 from functools import partial
@@ -63,6 +64,7 @@ from isic.datasets import (
 from isic.callbacks import Callback, CallbackReg
 
 import ray
+from ray.util.multiprocessing import Pool
 from ray import tune
 import ray.air as air
 
@@ -126,6 +128,8 @@ class TrainingScript(Script):
             else:
                 validation_output = model.transform(data_input_sample)
                 validation_output = torch.from_numpy(validation_output).float()
+        if isinstance(validation_output, Iterable):
+            validation_output = validation_output[0]
 
         onx = None
         save_path = Path(save_dir) if save_dir else self.save_path
@@ -151,10 +155,10 @@ class TrainingScript(Script):
             res_output = None
             if isinstance(model, nn.Module):
                 res_mod = Registry.load_model(save_file)
-                res_output, = res_mod(**data_input_sample)
+                res_output, *_ = res_mod(**data_input_sample)
             else:
                 res_mod = Registry.load_model(save_file, cuda=False)
-                res_output, = res_mod(data_input_sample)
+                res_output, *_ = res_mod(data_input_sample)
             if not (validation_output.max(-1).indices==res_output.max(-1).indices).all():
                 warnings.warn(
                     "Output decisions of training model and saved model do not match.",
@@ -299,7 +303,7 @@ class TrainingManager:
             self.splits[i] = TrainSplits(
                 train_data=training_data,
                 val_data=validation_data,
-                trainers=list(self.create_trainers()))
+                trainers=self.create_trainers())
 
     def create_dataloaders(self):
         split_idxs = None
@@ -317,6 +321,7 @@ class TrainingManager:
                 shuffle=self.shuffle,
                 ).split(self.data, self.data.labels)
             
+        d_ls = []
         for train_fold, val_fold in split_idxs:
             print("Start dataloaders.")
             train_dl_kwargs = self.dl_kwargs.copy()
@@ -330,10 +335,12 @@ class TrainingManager:
                 train_dl_kwargs["sampler"] = (
                     torch.utils.data.WeightedRandomSampler(weights, len(train_data)))
                 train_dl_kwargs["shuffle"] = False
-            yield (DataLoader(train_data,**train_dl_kwargs),
-                   DataLoader(val_data,**self.dl_kwargs))
+            d_ls.append((DataLoader(train_data,**train_dl_kwargs),
+                   DataLoader(val_data,**self.dl_kwargs)))
+        return d_ls
         
     def create_trainers(self):
+        ts = []
         for j, m in enumerate(self.models):
             model = ModelReg.initialize(m, self.models_kwargs[j]).to(device=self.device)
             opt = OptimizerReg.initialize(
@@ -342,20 +349,23 @@ class TrainingManager:
             if lr_sch:
                 lr_sch = LRSchedulerReg.initialize(
                     lr_sch, opt, self.lr_schedulers_kwargs[j])
-            yield self.trainer_class(
+            ts.append(self.trainer_class(
                 model=model,
                 optimizer=opt,
                 lr_scheduler=lr_sch,
                 criterion=self.criterion,
-                pipeline=self.pipelines[j])
+                pipeline=self.pipelines[j]))
+        return ts
 
     def get_models_for_onnx_save(self, dtype=None)-> tuple:
+        mods = []
         for i, split in self.splits.items():
             data_sample = next(iter(split.train_data))
             for trainer in split.trainers:
                 d_h = trainer.generate_data_handler(data_sample)
                 d_h.process_data(trainer.model, dtype=dtype, trunc_batch=8)
-                yield trainer.model.eval().to(dtype=dtype), d_h.get_inputs()
+                mods.append((trainer.model.eval().to(dtype=dtype), d_h.get_inputs()))
+        return mods
     
     def step_lr_schedulers(self):
         for train_elements in self:
@@ -412,7 +422,10 @@ class Trainer:
             data_handler.loss.backward()
             self.optimizer.step()
             self.step_lr_scheduler()
-        data_handler.set_last_lr(self.lr_scheduler.get_last_lr()[0])
+        if not self.lr_scheduler is None:
+            data_handler.set_last_lr(self.lr_scheduler.get_last_lr()[0])
+        else:
+            data_handler.set_last_lr(next(iter(self.optimizer.param_groups))['lr'])
         return data_handler
 
 class ISICTrainer(Trainer):    
@@ -482,7 +495,7 @@ class MultiClassifierTraining(TrainingScript):
             collate_fn=collate_wrapper,
             pin_memory=True,
             num_workers=num_workers,
-            prefetch_factor=2 if num_workers > 0 else None
+            prefetch_factor=8 if num_workers > 0 else None
             )
 
         self.pipelines = pipelines
@@ -545,6 +558,19 @@ class MultiClassifierTraining(TrainingScript):
                 trainer.model.train()
             for data in train_elements.train_data:
                 self.callback.on_train_batch_begin(self)
+                # results = None
+                # with Pool(ray_address="auto") as pool:
+                #     results = pool.map(
+                #         self.train,
+                #         zip(
+                #             train_elements.trainers,
+                #             [data]*len(train_elements.trainers)))
+                # for res in results:
+                #     self.callback.on_model_select(self)
+                #     self.callback.on_inference_end(
+                #         self,
+                #         data_handler=res)
+                    
                 for trainer in train_elements.trainers:
                     self.callback.on_model_select(self)
                     self.callback.on_inference_end(
@@ -555,6 +581,18 @@ class MultiClassifierTraining(TrainingScript):
                 trainer.model.eval()
             for data in train_elements.val_data:
                 self.callback.on_val_batch_begin(self)
+                # results = None
+                # with Pool(ray_address="auto") as pool:
+                #     results = pool.map(
+                #         self.train,
+                #         zip(
+                #             train_elements.trainers,
+                #             [data]*len(train_elements.trainers)))
+                # for res in results:
+                #     self.callback.on_model_select(self)
+                #     self.callback.on_inference_end(
+                #         self,
+                #         data_handler=res)
                 for trainer in train_elements.trainers:
                     self.callback.on_model_select(self)
                     self.callback.on_inference_end(
@@ -562,6 +600,11 @@ class MultiClassifierTraining(TrainingScript):
                         data_handler=trainer.infer_itr(data))
         self.training_manager.step_lr_schedulers()
         return self.callback.get_epoch_metrics()
+
+    @staticmethod
+    @ray.remote(num_gpus=1)
+    def train(trainer, data):
+        return trainer.infer_itr(data)
 
 class ClassifierTraining(TrainingScript):
     def __init__(
@@ -775,7 +818,7 @@ class Notebook(Script):
             img = data.img
             fet = data.fet
 
-            result, = self.classifier(img=img, fet=fet)
+            result, *_ = self.classifier(img=img, fet=fet)
             mal_confidence = torch.tensor(result).softmax(1)[:,1]
             sub.extend(list(zip(data.tgt, mal_confidence.numpy())))
         
@@ -1014,7 +1057,7 @@ class Main(Script):
                 fill_nan_values=[-1, 0],
                         ),
             label_desc='target',)
-        BATCHSIZE = 512
+        BATCHSIZE = 256
         EPOCHS = 10
         ds_len = len(DatasetReg.initialize(ds, ds_kwargs))
         
@@ -1043,12 +1086,12 @@ class Main(Script):
                     activation=ActivationReg.relu),
                 optimizers=OptimizerReg.adam,
                 optimizers_kwargs=dict(
-                    lr=tune.grid_search([0.00005])
+                    lr=0.00005
                 ),
                 lr_schedulers=LRSchedulerReg.CyclicLR,
                 lr_schedulers_kwargs=dict(
-                    base_lr=0.000001,
-                    max_lr=0.0001,
+                    base_lr=0.0000001,
+                    max_lr=0.00005,
                     step_size_up=(ds_len//BATCHSIZE)*EPOCHS
                 ),
                 criterion=CriterionReg.ClassifierLoss,
@@ -1154,23 +1197,11 @@ class Main(Script):
             script.save_results(mod, results)
 
     def trainClassifiersRay(self):
-        num_trials = 2
+        num_trials = 1
         num_cpus = 1 if self.debug else os.cpu_count()
         num_gpus = 0 if self.debug else torch.cuda.device_count()
         BATCHSIZE=256
         EPOCHS=100
-        lr_sched_params = {
-            False:dict(
-                    base_lr=0.000001,
-                    max_lr=0.00003,
-                    step_size_up=(401059//BATCHSIZE)*1
-                ),
-            True:dict(
-                    base_lr=0.000025,
-                    max_lr=0.00005,
-                    step_size_up=(401059//BATCHSIZE)*1
-                ),
-                }
         cpu_per_trial = num_cpus//num_trials
         gpu_per_trial = num_gpus/num_trials
         annotations_file=Path("/home/user/datasets/isic-2024-challenge/train-metadata.csv").resolve()
@@ -1206,9 +1237,9 @@ class Main(Script):
                         pad_mode='edge',
                         pass_larger_images=True,
                         crop=True,
-                        random_brightness=True,
-                        random_contrast=True,
-                        random_flips=True),
+                        random_brightness=False,
+                        random_contrast=False,
+                        random_flips=False),
                     annotation_transform=PPLabels(
                         exclusions=[
                             "isic_id",
@@ -1232,17 +1263,38 @@ class Main(Script):
                         fill_nan_values=[-1, 0],
                         ),
                     label_desc='target',),
-                pipelines=tune.grid_search([[[('fet', Path(pth).resolve())] if pth else pth]
-                    for pth in feature_reducer_paths]),
-                classifiers=ModelReg.Classifier,
+                pipelines=[
+                    [('fet', Path(pth).resolve())] if pth else pth
+                    for pth in feature_reducer_paths]*2,
+                classifiers=[
+                    ModelReg.Classifier,
+                    ModelReg.Classifier,
+                    ModelReg.Classifier,
+                    ModelReg.Classifier,],
                 classifiers_kwargs=dict(
                     activation=ActivationReg.relu),
                 optimizers=OptimizerReg.adam,
                 optimizers_kwargs=dict(
                     lr=tune.grid_search([0.00005])
                 ),
-                lr_schedulers=LRSchedulerReg.CyclicLR,
-                lr_schedulers_kwargs=tune.sample_from(lambda spec: lr_sched_params[spec.config.pipelines is None]),
+                lr_schedulers=[
+                    None,
+                    None,
+                    LRSchedulerReg.CyclicLR,
+                    LRSchedulerReg.CyclicLR],
+                lr_schedulers_kwargs=[
+                    None,
+                    None,
+                    dict(
+                            base_lr=0.0000001,
+                            max_lr=0.000025,
+                            step_size_up=(401059//BATCHSIZE)*3
+                        ),
+                    dict(
+                            base_lr=0.0000001,
+                            max_lr=0.000025,
+                            step_size_up=(401059//BATCHSIZE)*3
+                        ),],
                 criterion=CriterionReg.ClassifierLoss,
                 criterion_kwargs=dict(
                     weight=torch.tensor([393/401059, 400666/401059])
@@ -1260,15 +1312,23 @@ class Main(Script):
         print("Done")
 
     def trainClassifiers(self):
+        num_trials = 1
+        num_cpus = 1 if self.debug else os.cpu_count()
+        num_gpus = 0 if self.debug else torch.cuda.device_count()
+        BATCHSIZE=256
+        EPOCHS=100
+        cpu_per_trial = num_cpus//num_trials
+        gpu_per_trial = num_gpus/num_trials
         annotations_file=Path("/home/user/datasets/isic-2024-challenge/train-metadata.csv").resolve()
         img_file=Path("/home/user/datasets/isic-2024-challenge/train-image.hdf5").resolve()
         img_dir=Path("/home/user/datasets/isic-2024-challenge/train-image").resolve()
         feature_reducer_paths=[
             "./models/feature_reduction/PCA(n_components=0.9999)/model.onnx",
-            None
+            None,
             ]
-        script = MultiClassifierTraining(
-            dataset=DatasetReg.SkinLesionsSmall,
+        save_path=Path("./models/classifier").resolve()
+        config = dict(
+                dataset=DatasetReg.SkinLesionsSmall,
                 dataset_kwargs=dict(
                     annotations_file=annotations_file,
                     img_file=img_file,
@@ -1303,26 +1363,50 @@ class Main(Script):
                         fill_nan_values=[-1, 0],
                         ),
                     label_desc='target',),
-                pipelines=[[('fet', Path(pth).resolve())] if pth else pth
-                    for pth in feature_reducer_paths],
-                classifiers=[ModelReg.Classifier,ModelReg.Classifier],
+                pipelines=[
+                    [('fet', Path(pth).resolve())] if pth else pth
+                    for pth in feature_reducer_paths]*2,
+                classifiers=[
+                    ModelReg.Classifier,
+                    ModelReg.Classifier,
+                    ModelReg.Classifier,
+                    ModelReg.Classifier,],
                 classifiers_kwargs=dict(
                     activation=ActivationReg.relu),
                 optimizers=OptimizerReg.adam,
                 optimizers_kwargs=dict(
                     lr=0.00005
                 ),
+                lr_schedulers=[
+                    None,
+                    None,
+                    LRSchedulerReg.CyclicLR,
+                    LRSchedulerReg.CyclicLR],
+                lr_schedulers_kwargs=[
+                    None,
+                    None,
+                    dict(
+                            base_lr=0.0000001,
+                            max_lr=0.000025,
+                            step_size_up=(401059//BATCHSIZE)*3
+                        ),
+                    dict(
+                            base_lr=0.0000001,
+                            max_lr=0.000025,
+                            step_size_up=(401059//BATCHSIZE)*3
+                        ),],
                 criterion=CriterionReg.ClassifierLoss,
                 criterion_kwargs=dict(
                     weight=torch.tensor([393/401059, 400666/401059])
                 ),
-                save_path="./models/classifier",
+                save_path=save_path,
                 balance_training_set=False,
                 k_fold_splits=1,
-                batch_size=256,
+                batch_size=BATCHSIZE,
                 shuffle=True,
-                num_workers=os.cpu_count()-1 if not self.debug else 0,
+                num_workers=cpu_per_trial-1,
             )
+        script = MultiClassifierTraining(**config)
         script.setup()
         results = script.run()
 
